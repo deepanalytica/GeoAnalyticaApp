@@ -247,6 +247,7 @@ def analisis_exploratorio():
         fig, ax = plt.subplots()
         sns.violinplot(x=datos[columna_seleccionada], ax=ax)
         st.pyplot(fig)
+
 # Función de Análisis Estadísticos
 def analisis_estadisticos():
     st.title("Análisis Estadísticos")
@@ -360,16 +361,16 @@ def analisis_correlaciones():
         if len(seleccionadas) > 1:
             for col1 in seleccionadas:
                 for col2 in seleccionadas:
-                    if col1 != col2 and (col2, col1) not in correlaciones:
+                    if col1 != col2:
                         correlacion = datos_numericos[col1].corr(datos_numericos[col2])
-                        correlaciones[(col1, col2)] = correlacion
+                        correlaciones[f"{col1}_{col2}"] = correlacion  # Concatenar nombres de columnas
             st.write("Correlaciones Calculadas:")
             st.write(correlaciones)
             corr_df = pd.DataFrame(correlaciones, index=[0]).T.reset_index()
-            corr_df.columns = ["Variable 1", "Variable 2", "Correlación"]
+            corr_df.columns = ["Variable 1_Variable 2", "Correlación"]
             st.write(corr_df)
             fig, ax = plt.subplots()
-            sns.heatmap(corr_df.pivot("Variable 1", "Variable 2", "Correlación"), annot=True, cmap="coolwarm", ax=ax)
+            sns.heatmap(corr_df.pivot("Variable 1_Variable 2", "Correlación", "Correlación"), annot=True, cmap="coolwarm", ax=ax)
             st.pyplot(fig)
         else:
             st.warning("Seleccione al menos dos variables para analizar las correlaciones.")
