@@ -10,4 +10,4 @@ fpdf
 plotly
 altair
 pydeck
-st-aggrid
+streamlit-aggrid  # Reemplaza st-aggrid por streamlit-aggrid
