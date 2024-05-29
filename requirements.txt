@@ -3,11 +3,11 @@ pandas
 numpy
 matplotlib
 seaborn
-folium
-streamlit-folium
+plotly
 scikit-learn
 fpdf
-plotly
-altair 
-openpyxl
-streamlit-option-menu
+pillow
+streamlit-lottie
+streamlit-google-auth>=0.4.0  # Asegúrate de la versión correcta
+geopandas
+folium
