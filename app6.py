@@ -690,6 +690,7 @@ if __name__ == "__main__":
         # Submenú de Exportación
         st.sidebar.button("Exportar Resultados 📤", on_click=exportar_resultados)
 
+        
         # Submenú de Edición de Datos
         with st.sidebar.expander("Edición de Datos"):
             st.sidebar.button("Edición de Celdas ✏️", on_click=editar_celdas)
