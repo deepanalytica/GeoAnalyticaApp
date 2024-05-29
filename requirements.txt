@@ -6,8 +6,12 @@ seaborn
 plotly
 scikit-learn
 fpdf
-pillow
-streamlit-lottie
+Pillow
 geopandas
 folium
-openpyxl
+holoviews
+bokeh
+datashader
+geoviews
+cartopy
+panel
