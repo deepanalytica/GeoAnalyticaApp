@@ -689,7 +689,7 @@ if __name__ == "__main__":
         # Submenú de Exportación
         st.sidebar.button("Exportar Resultados 📤", on_click=exportar_resultados)
 
-        # Submenú de Edición de Datos
+    # Submenú de Edición de Datos
         with st.sidebar.expander("Edición de Datos"):
             st.sidebar.button("Edición de Celdas ✏️", on_click=editar_celdas)
             st.sidebar.button("Filtrado de Datos 🔍", on_click=filtrar_datos)
@@ -700,6 +700,6 @@ if __name__ == "__main__":
             st.sidebar.button("Inserción de Columnas ➕", on_click=insertar_columnas)
             st.sidebar.button("Eliminación de Columnas ➖", on_click=eliminar_columnas)
             st.sidebar.button("Crear Nueva Tabla ➕", on_click=crear_nueva_tabla)
-
-    # Mostrar la página de inicio por defecto
-   # mostrar_inicio()
+            
+    # Mostrar la página de inicio por defecto (fuera del "with st.sidebar")
+    mostrar_inicio()
