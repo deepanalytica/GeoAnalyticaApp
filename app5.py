@@ -19,6 +19,11 @@ from sklearn.impute import SimpleImputer
 import streamlit.components.v1 as components
 import geopandas as gpd  # Para análisis geoespacial
 import folium  # Para visualización de mapas
+import holoviews as hv
+from holoviews.plotting.plotly.dash import to_dash
+from holoviews.operation.datashader import datashade
+from plotly.data import carshare
+from plotly.colors import sequential
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -156,7 +161,7 @@ def guardar_dataframe(datos, formato="csv"):
 def mostrar_inicio():
     st.title("Bienvenido a la Aplicación de Geoquímica Minera")
     st.write("Esta aplicación le permite analizar y visualizar datos geoquímicos de manera avanzada y profesional.")
-    imagen = Image.open("logo.png")  # Reemplace con la ruta a su imagen
+    imagen = Image.open("img/logo_GeoAnaytica.png")  # Reemplace con la ruta a su imagen
     st.image(imagen)
 
 # Función de Cargar Datos
@@ -485,6 +490,186 @@ def chatbot():
     st.write("Esta sección está en desarrollo.")
     # Implementar funcionalidades de chatbot
 
+# Función para manejar la edición de celdas
+def editar_celdas():
+    st.title("Edición de Celdas")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    st.dataframe(datos, use_container_width=True)
+
+    # Guarda los cambios realizados en el DataFrame
+    st.session_state['datos'] = datos
+
+# Función para filtrar datos
+def filtrar_datos():
+    st.title("Filtrado de Datos")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    with st.container():
+        st.subheader("Filtrar por Nombre de Muestra")
+        nombre_muestra = st.text_input("Ingrese el nombre de la muestra:")
+        if nombre_muestra:
+            st.write("Datos filtrados:")
+            st.dataframe(datos[datos.index == nombre_muestra], use_container_width=True)
+
+    with st.container():
+        st.subheader("Filtrar por Valor de Columna")
+        columna_filtro = st.selectbox("Selecciona la columna para filtrar:", datos.columns)
+        valor_filtro = st.text_input("Ingrese el valor para filtrar:")
+        if columna_filtro and valor_filtro:
+            st.write("Datos filtrados:")
+            st.dataframe(datos[datos[columna_filtro] == valor_filtro], use_container_width=True)
+
+    with st.container():
+        st.subheader("Filtrar por Rango de Valores")
+        columna_rango = st.selectbox("Selecciona la columna para filtrar por rango:", datos.columns)
+        valor_min = st.number_input("Valor mínimo:", value=0, step=1)
+        valor_max = st.number_input("Valor máximo:", value=100, step=1)
+        if columna_rango:
+            st.write("Datos filtrados:")
+            st.dataframe(datos[(datos[columna_rango] >= valor_min) & (datos[columna_rango] <= valor_max)], use_container_width=True)
+
+# Función para agrupar datos
+def agrupar_datos():
+    st.title("Agrupación de Datos")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    with st.container():
+        st.subheader("Agrupar por Columna")
+        columna_agrupacion = st.selectbox("Selecciona la columna para agrupar:", datos.columns)
+        if columna_agrupacion:
+            st.write("Datos agrupados:")
+            st.dataframe(datos.groupby(columna_agrupacion).mean(), use_container_width=True)  # Calcula la media
+
+# Función para ordenar datos
+def ordenar_datos():
+    st.title("Ordenación de Datos")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    with st.container():
+        st.subheader("Ordenar por Columna")
+        columna_ordenacion = st.selectbox("Selecciona la columna para ordenar:", datos.columns)
+        orden_ascendente = st.checkbox("Orden Ascendente", value=True)
+        if columna_ordenacion:
+            st.write("Datos ordenados:")
+            if orden_ascendente:
+                st.dataframe(datos.sort_values(by=columna_ordenacion, ascending=True), use_container_width=True)
+            else:
+                st.dataframe(datos.sort_values(by=columna_ordenacion, ascending=False), use_container_width=True)
+
+# Función para insertar filas
+def insertar_filas():
+    st.title("Inserción de Filas")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    with st.container():
+        st.subheader("Agregar Nueva Fila")
+        nueva_fila = {}
+        for columna in datos.columns:
+            if datos[columna].dtype == np.number:
+                nueva_fila[columna] = st.number_input(f"Ingrese el valor para {columna}:", value=0, step=1)
+            else:
+                nueva_fila[columna] = st.text_input(f"Ingrese el valor para {columna}:")
+        if st.button("Agregar Fila"):
+            st.session_state['datos'] = datos.append(pd.DataFrame([nueva_fila]), ignore_index=True)
+            st.write("Fila agregada correctamente.")
+            st.dataframe(st.session_state['datos'], use_container_width=True)
+
+# Función para eliminar filas
+def eliminar_filas():
+    st.title("Eliminación de Filas")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    with st.container():
+        st.subheader("Eliminar Fila")
+        fila_a_eliminar = st.text_input("Ingrese el nombre de la muestra a eliminar:")
+        if fila_a_eliminar:
+            if fila_a_eliminar in datos.index:
+                st.session_state['datos'] = datos.drop(fila_a_eliminar)
+                st.write(f"Fila '{fila_a_eliminar}' eliminada correctamente.")
+                st.dataframe(st.session_state['datos'], use_container_width=True)
+            else:
+                st.warning(f"La fila '{fila_a_eliminar}' no existe en los datos.")
+
+# Función para insertar columnas
+def insertar_columnas():
+    st.title("Inserción de Columnas")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    with st.container():
+        st.subheader("Agregar Nueva Columna")
+        nombre_columna = st.text_input("Ingrese el nombre de la nueva columna:")
+        tipo_dato = st.selectbox("Tipo de dato:", ["numérico", "texto"])
+        if nombre_columna:
+            if tipo_dato == "numérico":
+                valores_columna = []
+                for _ in range(len(datos)):
+                    valores_columna.append(st.number_input(f"Ingrese el valor para la nueva columna en la fila {_+1}:", value=0, step=1))
+                st.session_state['datos'][nombre_columna] = valores_columna
+                st.write("Columna agregada correctamente.")
+                st.dataframe(st.session_state['datos'], use_container_width=True)
+            else:
+                valores_columna = []
+                for _ in range(len(datos)):
+                    valores_columna.append(st.text_input(f"Ingrese el valor para la nueva columna en la fila {_+1}:"))
+                st.session_state['datos'][nombre_columna] = valores_columna
+                st.write("Columna agregada correctamente.")
+                st.dataframe(st.session_state['datos'], use_container_width=True)
+
+# Función para eliminar columnas
+def eliminar_columnas():
+    st.title("Eliminación de Columnas")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    with st.container():
+        st.subheader("Eliminar Columna")
+        columna_a_eliminar = st.selectbox("Selecciona la columna a eliminar:", datos.columns)
+        if columna_a_eliminar:
+            st.session_state['datos'] = datos.drop(columna_a_eliminar, axis=1)
+            st.write(f"Columna '{columna_a_eliminar}' eliminada correctamente.")
+            st.dataframe(st.session_state['datos'], use_container_width=True)
+
+# Función para crear una nueva tabla vacía
+def crear_nueva_tabla():
+    st.title("Crear Nueva Tabla")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    with st.container():
+        st.subheader("Crear Nueva Tabla Vacía")
+        nombre_tabla = st.text_input("Ingrese el nombre de la nueva tabla:")
+        columnas_tabla = st.multiselect("Selecciona las columnas para la nueva tabla:", datos.columns)
+        if nombre_tabla and columnas_tabla:
+            st.session_state['datos'] = pd.DataFrame(columns=columnas_tabla)
+            st.write(f"Tabla '{nombre_tabla}' creada correctamente.")
+            st.dataframe(st.session_state['datos'], use_container_width=True)
+
 # Mostrar contenido según selección del menú
 if __name__ == "__main__":
     if opcion == "Inicio 🏠":
@@ -515,3 +700,21 @@ if __name__ == "__main__":
         analisis_geoespacial()
     elif opcion == "Chatbot 💬":
         chatbot()
+    elif opcion == "Edición de Celdas ✏️":
+        editar_celdas()
+    elif opcion == "Filtrado de Datos 🔍":
+        filtrar_datos()
+    elif opcion == "Agrupación de Datos 📊":
+        agrupar_datos()
+    elif opcion == "Ordenación de Datos 📈":
+        ordenar_datos()
+    elif opcion == "Inserción de Filas ➕":
+        insertar_filas()
+    elif opcion == "Eliminación de Filas ➖":
+        eliminar_filas()
+    elif opcion == "Inserción de Columnas ➕":
+        insertar_columnas()
+    elif opcion == "Eliminación de Columnas ➖":
+        eliminar_columnas()
+    elif opcion == "Crear Nueva Tabla ➕":
+        crear_nueva_tabla()
