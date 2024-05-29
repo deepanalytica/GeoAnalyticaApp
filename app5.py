@@ -17,7 +17,6 @@ from io import BytesIO
 import base64
 from sklearn.impute import SimpleImputer
 import streamlit.components.v1 as components
-from streamlit_google_auth import authenticate_google  # Para autenticación de Google
 import geopandas as gpd  # Para análisis geoespacial
 import folium  # Para visualización de mapas
 
@@ -91,22 +90,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-# Autenticación con Google (Se requiere que configures el archivo 'client_secrets.json')
-authenticate_google(
-    client_secrets="client_secrets.json",  # Remplaza con la ruta a tu archivo
-    scopes=[
-        "https://www.googleapis.com/auth/userinfo.email",
-        "https://www.googleapis.com/auth/userinfo.profile",
-        "https://www.googleapis.com/auth/drive.readonly"  # Para leer archivos de Google Drive
-    ],
-)
-
-# Verificar si el usuario está autenticado
-if st.session_state.authenticated:
-    st.write(f"Bienvenido, {st.session_state.google_user['name']}!")
-else:
-    st.warning("Por favor, inicia sesión con Google.")
 
 # Menú Horizontal
 opcion = st.radio(
@@ -196,27 +179,6 @@ def cargar_datos():
                 guardar_dataframe(st.session_state['datos'], formato="excel")
             except Exception as e:
                 st.error(f"Error al cargar los datos: {e}")
-
-    with st.container():
-        st.subheader("Cargar desde Google Drive")
-        if st.session_state.authenticated:
-            selected_file = st.file_uploader("Selecciona un archivo de Google Drive", type=["csv", "xlsx"])
-            if selected_file is not None:
-                try:
-                    if selected_file.name.endswith('.csv'):
-                        st.session_state['datos'] = pd.read_csv(selected_file)
-                    else:
-                        st.session_state['datos'] = pd.read_excel(selected_file, header=[2, 3], skiprows=4)
-                        st.session_state['datos'].columns = ['_'.join(col).strip() for col in st.session_state['datos'].columns.values]
-                        st.session_state['datos']['Unidades'] = st.session_state['datos'].columns.str.split('_').str[-1]
-                    st.session_state['datos'] = corregir_tipos(st.session_state['datos'])
-                    st.write("Vista previa de los datos:", st.session_state['datos'].head())
-                    guardar_dataframe(st.session_state['datos'], formato="csv")
-                    guardar_dataframe(st.session_state['datos'], formato="excel")
-                except Exception as e:
-                    st.error(f"Error al cargar los datos: {e}")
-        else:
-            st.warning("Por favor, inicia sesión con Google para acceder a Google Drive.")
 
 # Función de Resumen de Datos
 def resumen_datos():
