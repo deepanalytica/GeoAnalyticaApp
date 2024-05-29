@@ -10,3 +10,4 @@ fpdf
 plotly
 altair 
 openpyxl
+streamlit-option-menu
