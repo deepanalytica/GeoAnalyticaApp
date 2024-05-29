@@ -16,3 +16,4 @@ geoviews
 cartopy
 panel
 dash
+openpyxl
