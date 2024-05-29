@@ -139,7 +139,7 @@ def guardar_dataframe(datos, formato="csv"):
 def mostrar_inicio():
     st.title("Bienvenido a la Aplicación de Geoquímica Minera")
     st.write("Esta aplicación le permite analizar y visualizar datos geoquímicos de manera avanzada y profesional.")
-    imagen = Image.open("img/logo_GeoAnaytica.png")  # Reemplace con la ruta a su imagen
+    imagen = Image.open("logo.png")  # Reemplace con la ruta a su imagen
     st.image(imagen)
 
     st.markdown("## Guía rápida:")
