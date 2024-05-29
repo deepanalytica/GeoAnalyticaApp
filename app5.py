@@ -14,7 +14,6 @@ import plotly.graph_objects as go
 from PIL import Image
 from io import BytesIO
 import base64
-from streamlit_aggrid import AgGrid  # Para tablas interactivas
 import altair as alt  # Para gráficos interactivos
 import pydeck as pdk  # Para visualizaciones geográficas 3D
 
@@ -132,23 +131,14 @@ def cargar_datos():
             guardar_dataframe(st.session_state['datos'], formato="csv")
             guardar_dataframe(st.session_state['datos'], formato="excel")
 
-            # Mostrar la tabla interactiva con streamlit-aggrid
+            # Mostrar la tabla interactiva con Altair
             st.markdown("## Tabla Interactiva")
-            grid_options = {
-                'enableSorting': True,
-                'enableFilter': True,
-                'enableColResize': True,
-                'enableRangeSelection': True,
-            }
-            grid_response = AgGrid(
-                st.session_state['datos'], 
-                gridOptions=grid_options, 
-                theme='streamlit',
-            )
-            if grid_response['selected_rows']:
-                st.write('Filas seleccionadas:')
-                for row in grid_response['selected_rows']:
-                    st.write(row)
+            st.write(alt.Chart(st.session_state['datos']).mark_text().encode(
+                alt.X('Sample:N', sort=None),
+                alt.Y('Au:Q', sort=None),
+                alt.Text('Au:Q'),
+            ).properties(title="Datos de Oro (Au)"))
+
         except Exception as e:
             st.error(f"Error al cargar los datos: {e}")
 
