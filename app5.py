@@ -171,7 +171,7 @@ def cargar_datos():
                     st.session_state['datos'] = pd.read_csv(archivo)
                 else:
                     # Lee el archivo Excel con las dos primeras filas como encabezados
-                    st.session_state['datos'] = pd.read_excel(archivo, header=[0, 1], skiprows=4) 
+                    st.session_state['datos'] = pd.read_excel(archivo, header=[2, 3], skiprows=4) 
                     # st.session_state['datos'] = pd.read_excel(archivo, header=[0, 1]) 
                     
                     # Verifica que las columnas tengan nombres únicos:
@@ -188,7 +188,6 @@ def cargar_datos():
                 guardar_dataframe(st.session_state['datos'], formato="excel")
             except Exception as e:
                 st.error(f"Error al cargar los datos: {e}")
-
 
 # Función de Resumen de Datos
 def resumen_datos():
