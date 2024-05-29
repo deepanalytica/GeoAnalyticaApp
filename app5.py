@@ -247,7 +247,6 @@ def analisis_exploratorio():
         fig, ax = plt.subplots()
         sns.violinplot(x=datos[columna_seleccionada], ax=ax)
         st.pyplot(fig)
-
 # Función de Análisis Estadísticos
 def analisis_estadisticos():
     st.title("Análisis Estadísticos")
