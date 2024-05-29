@@ -172,7 +172,6 @@ def cargar_datos():
                 else:
                     # Lee el archivo Excel con las dos primeras filas como encabezados
                     st.session_state['datos'] = pd.read_excel(archivo, header=[2, 3], skiprows=4) 
-                    # st.session_state['datos'] = pd.read_excel(archivo, header=[0, 1]) 
                     
                     # Verifica que las columnas tengan nombres únicos:
                     if st.session_state['datos'].columns.nlevels > 1:
@@ -183,6 +182,7 @@ def cargar_datos():
                         st.session_state['datos']['Unidades'] = st.session_state['datos'].columns.str.split('_').str[-1]
 
                 st.session_state['datos'] = corregir_tipos(st.session_state['datos'])
+                st.session_state['datos'] = st.session_state['datos'].set_index('SAMPLE')
                 st.write("Vista previa de los datos:", st.session_state['datos'].head())
                 guardar_dataframe(st.session_state['datos'], formato="csv")
                 guardar_dataframe(st.session_state['datos'], formato="excel")
