@@ -106,7 +106,7 @@ def mostrar_inicio():
     st.write("""
     Esta aplicación le permite analizar y visualizar datos geoquímicos de manera avanzada y profesional.
     """)
-    imagen = Image.open("imagen_inicio.jpg")  # Reemplace con la ruta a su imagen
+    imagen = Image.open("logo_GeoAnaytica.png")  # Reemplace con la ruta a su imagen
     st.image(imagen)
 
 # Función de Cargar Datos
