@@ -15,7 +15,7 @@ from fpdf import FPDF
 from PIL import Image
 from io import BytesIO
 import base64
-from sklearn.impute import SimpleImputer
+from sklearn.impute import SimpleImputer 
 import streamlit.components.v1 as components
 import geopandas as gpd  # Para análisis geoespacial
 import folium  # Para visualización de mapas
@@ -91,32 +91,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Menú Horizontal
-opcion = st.radio(
-    "Seleccione una opción:",
-    [
-        "Inicio 🏠",
-        "Cargar Datos 📂",
-        "Resumen de Datos 📊",
-        "Análisis Exploratorio 🔍",
-        "Análisis Estadísticos 📈",
-        "Análisis de Componentes Principales (PCA) 🧭",
-        "Análisis de Clustering 🧬",
-        "Análisis de Correlaciones 🔗",
-        "Machine Learning 🤖",
-        "Predicciones 🔮",
-        "Exportar Resultados 📤",
-        "Visualización de Mapas 🗺️",
-        "Análisis Geoespacial 🌎",
-        "Chatbot 💬"
-    ],
-    horizontal=True
-)
-
-# Inicializar el estado de sesión para datos
-if 'datos' not in st.session_state:
-    st.session_state['datos'] = pd.DataFrame()
-
 # Función para corregir tipos de datos
 def corregir_tipos(datos):
     datos_corregidos = datos.copy()
@@ -170,9 +144,17 @@ def cargar_datos():
                 if archivo.name.endswith('.csv'):
                     st.session_state['datos'] = pd.read_csv(archivo)
                 else:
-                    st.session_state['datos'] = pd.read_excel(archivo, header=[2, 3], skiprows=4)
-                    st.session_state['datos'].columns = ['_'.join(col).strip() for col in st.session_state['datos'].columns.values]
-                    st.session_state['datos']['Unidades'] = st.session_state['datos'].columns.str.split('_').str[-1]
+                    # Aquí está la clave para leer correctamente archivos Excel:
+                    st.session_state['datos'] = pd.read_excel(archivo, header=[0, 1]) 
+                    
+                    # Verifica que las columnas tengan nombres únicos:
+                    if st.session_state['datos'].columns.nlevels > 1:
+                        st.session_state['datos'].columns = ['_'.join(col).strip() for col in st.session_state['datos'].columns.values]
+                    
+                    # Agrega la columna 'Unidades' si es necesario
+                    if 'Unidades' not in st.session_state['datos'].columns:
+                        st.session_state['datos']['Unidades'] = st.session_state['datos'].columns.str.split('_').str[-1]
+
                 st.session_state['datos'] = corregir_tipos(st.session_state['datos'])
                 st.write("Vista previa de los datos:", st.session_state['datos'].head())
                 guardar_dataframe(st.session_state['datos'], formato="csv")
@@ -187,6 +169,19 @@ def resumen_datos():
     if datos.empty:
         st.warning("Por favor, cargue los datos primero.")
         return
+
+    # Asignar ID a las muestras
+    datos['Sample_ID'] = range(1, len(datos) + 1)
+
+    # Procesar valores bajo el límite de detección
+    for columna in datos.columns:
+        if columna.startswith("Sample"):
+            continue
+        if datos[columna].dtype == np.number:
+            datos[columna] = datos[columna].replace("<", "", regex=True)
+            datos[columna] = pd.to_numeric(datos[columna], errors='coerce')
+            datos[columna] = datos[columna].fillna(0)
+
     st.write("Vista previa de los datos:", datos.head())
     st.write("Resumen estadístico:", datos.describe())
 
