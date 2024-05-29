@@ -171,7 +171,8 @@ def cargar_datos():
                     st.session_state['datos'] = pd.read_csv(archivo)
                 else:
                     # Aquí está la clave para leer correctamente archivos Excel:
-                    st.session_state['datos'] = pd.read_excel(archivo, header=[0, 1]) 
+                    st.session_state['datos'] = pd.read_excel(archivo, header=[0, 1], skiprows=4)
+                    # st.session_state['datos'] = pd.read_excel(archivo, header=[0, 1]) 
                     
                     # Verifica que las columnas tengan nombres únicos:
                     if st.session_state['datos'].columns.nlevels > 1:
