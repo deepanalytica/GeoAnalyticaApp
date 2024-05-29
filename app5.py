@@ -161,7 +161,7 @@ def guardar_dataframe(datos, formato="csv"):
 def mostrar_inicio():
     st.title("Bienvenido a la Aplicación de Geoquímica Minera")
     st.write("Esta aplicación le permite analizar y visualizar datos geoquímicos de manera avanzada y profesional.")
-    imagen = Image.open("logo.png")  # Reemplace con la ruta a su imagen
+    imagen = Image.open("img/logo_GeoAnaytica.png")  # Reemplace con la ruta a su imagen
     st.image(imagen)
 
 # Función de Cargar Datos
@@ -187,7 +187,14 @@ def cargar_datos():
                         st.session_state['datos']['Unidades'] = st.session_state['datos'].columns.str.split('_').str[-1]
 
                 st.session_state['datos'] = corregir_tipos(st.session_state['datos'])
+
+                # Obtener la columna de muestras
+                columna_muestras = st.session_state['datos'].columns[0]
+
+                # Asignar ID a las muestras automáticamente
+                st.session_state['datos'].index = st.session_state['datos'][columna_muestras] 
                 st.session_state['datos'] = st.session_state['datos'].set_index('SAMPLE')
+
                 st.write("Vista previa de los datos:", st.session_state['datos'].head())
                 guardar_dataframe(st.session_state['datos'], formato="csv")
                 guardar_dataframe(st.session_state['datos'], formato="excel")
