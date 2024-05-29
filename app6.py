@@ -139,8 +139,9 @@ def guardar_dataframe(datos, formato="csv"):
 def mostrar_inicio():
     st.title("Bienvenido a la Aplicación de Geoquímica Minera")
     st.write("Esta aplicación le permite analizar y visualizar datos geoquímicos de manera avanzada y profesional.")
-    imagen = Image.open("logo.png")  # Reemplace con la ruta a su imagen
-    st.image(imagen)
+    # Mostrar la imagen solo en la página de inicio y con un ancho específico
+    imagen = Image.open("logo.png")  
+    st.image(imagen, width=200)  # Ajusta el ancho (en píxeles) según tus preferencias
 
     st.markdown("## Guía rápida:")
     st.write("1. **Cargar Datos:** Sube tus datos geoquímicos en formato CSV o Excel. Asegúrate de que la primera fila contiene los nombres de las columnas.")
@@ -689,7 +690,7 @@ if __name__ == "__main__":
         # Submenú de Exportación
         st.sidebar.button("Exportar Resultados 📤", on_click=exportar_resultados)
 
-    # Submenú de Edición de Datos
+        # Submenú de Edición de Datos
         with st.sidebar.expander("Edición de Datos"):
             st.sidebar.button("Edición de Celdas ✏️", on_click=editar_celdas)
             st.sidebar.button("Filtrado de Datos 🔍", on_click=filtrar_datos)
