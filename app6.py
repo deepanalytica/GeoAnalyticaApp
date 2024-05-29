@@ -702,4 +702,4 @@ if __name__ == "__main__":
             st.sidebar.button("Crear Nueva Tabla ➕", on_click=crear_nueva_tabla)
 
     # Mostrar la página de inicio por defecto
-    mostrar_inicio()
+   # mostrar_inicio()
