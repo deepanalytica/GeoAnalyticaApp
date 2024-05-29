@@ -8,7 +8,4 @@ streamlit-folium
 scikit-learn
 fpdf
 plotly
-Pillow
-altair
-pydeck
-streamlit-aggrid
+altair 
