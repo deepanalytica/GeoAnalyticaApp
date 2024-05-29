@@ -15,7 +15,7 @@ from fpdf import FPDF
 from PIL import Image
 from io import BytesIO
 import base64
-from sklearn.impute import SimpleImputer 
+from sklearn.impute import SimpleImputer
 import streamlit.components.v1 as components
 import geopandas as gpd  # Para análisis geoespacial
 import folium  # Para visualización de mapas
@@ -90,6 +90,32 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# Menú Horizontal
+opcion = st.radio(
+    "Seleccione una opción:",
+    [
+        "Inicio 🏠",
+        "Cargar Datos 📂",
+        "Resumen de Datos 📊",
+        "Análisis Exploratorio 🔍",
+        "Análisis Estadísticos 📈",
+        "Análisis de Componentes Principales (PCA) 🧭",
+        "Análisis de Clustering 🧬",
+        "Análisis de Correlaciones 🔗",
+        "Machine Learning 🤖",
+        "Predicciones 🔮",
+        "Exportar Resultados 📤",
+        "Visualización de Mapas 🗺️",
+        "Análisis Geoespacial 🌎",
+        "Chatbot 💬"
+    ],
+    horizontal=True
+)
+
+# Inicializar el estado de sesión para datos
+if 'datos' not in st.session_state:
+    st.session_state['datos'] = pd.DataFrame()
 
 # Función para corregir tipos de datos
 def corregir_tipos(datos):
@@ -458,31 +484,32 @@ def chatbot():
     # Implementar funcionalidades de chatbot
 
 # Mostrar contenido según selección del menú
-if opcion == "Inicio 🏠":
-    mostrar_inicio()
-elif opcion == "Cargar Datos 📂":
-    cargar_datos()
-elif opcion == "Resumen de Datos 📊":
-    resumen_datos()
-elif opcion == "Análisis Exploratorio 🔍":
-    analisis_exploratorio()
-elif opcion == "Análisis Estadísticos 📈":
-    analisis_estadisticos()
-elif opcion == "Análisis de Componentes Principales (PCA) 🧭":
-    analisis_pca()
-elif opcion == "Análisis de Clustering 🧬":
-    analisis_clustering()
-elif opcion == "Análisis de Correlaciones 🔗":
-    analisis_correlaciones()
-elif opcion == "Machine Learning 🤖":
-    machine_learning()
-elif opcion == "Predicciones 🔮":
-    predicciones()
-elif opcion == "Exportar Resultados 📤":
-    exportar_resultados()
-elif opcion == "Visualización de Mapas 🗺️":
-    visualizar_mapas()
-elif opcion == "Análisis Geoespacial 🌎":
-    analisis_geoespacial()
-elif opcion == "Chatbot 💬":
-    chatbot()
+if __name__ == "__main__":
+    if opcion == "Inicio 🏠":
+        mostrar_inicio()
+    elif opcion == "Cargar Datos 📂":
+        cargar_datos()
+    elif opcion == "Resumen de Datos 📊":
+        resumen_datos()
+    elif opcion == "Análisis Exploratorio 🔍":
+        analisis_exploratorio()
+    elif opcion == "Análisis Estadísticos 📈":
+        analisis_estadisticos()
+    elif opcion == "Análisis de Componentes Principales (PCA) 🧭":
+        analisis_pca()
+    elif opcion == "Análisis de Clustering 🧬":
+        analisis_clustering()
+    elif opcion == "Análisis de Correlaciones 🔗":
+        analisis_correlaciones()
+    elif opcion == "Machine Learning 🤖":
+        machine_learning()
+    elif opcion == "Predicciones 🔮":
+        predicciones()
+    elif opcion == "Exportar Resultados 📤":
+        exportar_resultados()
+    elif opcion == "Visualización de Mapas 🗺️":
+        visualizar_mapas()
+    elif opcion == "Análisis Geoespacial 🌎":
+        analisis_geoespacial()
+    elif opcion == "Chatbot 💬":
+        chatbot()
