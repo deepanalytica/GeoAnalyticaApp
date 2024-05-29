@@ -9,3 +9,4 @@ scikit-learn
 fpdf
 plotly
 altair 
+openpyxl
