@@ -356,9 +356,10 @@ def analisis_correlaciones():
         return
     with st.container():
         st.subheader("Selección de Variables")
-        correlaciones = {}
-        seleccionadas = st.multiselect("Selecciona las Variables para Analizar Correlaciones", datos_numericos.columns)
+        columnas_analisis = [col for col in datos_numericos.columns if col != 'Sample_ID']  # Excluye Sample_ID
+        seleccionadas = st.multiselect("Selecciona las Variables para Analizar Correlaciones", columnas_analisis)
         if len(seleccionadas) > 1:
+            correlaciones = {}
             for col1 in seleccionadas:
                 for col2 in seleccionadas:
                     if col1 != col2:
