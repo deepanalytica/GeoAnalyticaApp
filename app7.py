@@ -17,13 +17,12 @@ from sklearn.impute import SimpleImputer
 import streamlit.components.v1 as components
 import geopandas as gpd  # Para análisis geoespacial
 import folium  # Para visualización de mapas
+import holoviews as hv
+from holoviews.plotting.plotly.dash import to_dash
+from holoviews.operation.datashader import datashade
+from plotly.data import carshare
+from plotly.colors import sequential
 import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
-
-# Instalar streamlit-shadcn-ui
-# pip install streamlit-shadcn-ui
-
-# Importar la biblioteca
-from streamlit_shadcn_ui import shadcn_ui
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -96,6 +95,28 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Menú Lateral
+st.sidebar.title("Menú")
+opcion = st.sidebar.radio(
+    "Seleccione una opción:",
+    [
+        "Inicio 🏠",
+        "Cargar Datos 📂",
+        "Resumen de Datos 📊",
+        "Análisis Exploratorio 🔍",
+        "Análisis Estadísticos 📈",
+        "Análisis de Componentes Principales (PCA) 🧭",
+        "Análisis de Clustering 🧬",
+        "Análisis de Correlaciones 🔗",
+        "Machine Learning 🤖",
+        "Predicciones 🔮",
+        "Exportar Resultados 📤",
+        "Visualización de Mapas 🗺️",
+        "Análisis Geoespacial 🌎",
+    ],
+    horizontal=False
+)
+
 # Inicializar el estado de sesión para datos
 if 'datos' not in st.session_state:
     st.session_state['datos'] = pd.DataFrame()
@@ -139,32 +160,8 @@ def guardar_dataframe(datos, formato="csv"):
 def mostrar_inicio():
     st.title("Bienvenido a la Aplicación de Geoquímica Minera")
     st.write("Esta aplicación le permite analizar y visualizar datos geoquímicos de manera avanzada y profesional.")
-    
-    # Mostrar el logo en pequeño
-    logo = Image.open("logo.png")  # Reemplaza con la ruta a tu imagen
-    st.image(logo, width=100)  # Ajusta el ancho del logo según sea necesario
-
-    # Dashboard con KPI
-    with st.container():
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            shadcn_ui.kpi(
-                value="500",
-                label="Muestras Analizadas",
-                icon="fa-solid fa-flask"
-            )
-        with col2:
-            shadcn_ui.kpi(
-                value="15",
-                label="Minerales Identificados",
-                icon="fa-solid fa-gem"
-            )
-        with col3:
-            shadcn_ui.kpi(
-                value="3",
-                label="Prospectos de Exploración",
-                icon="fa-solid fa-map-location-dot"
-            )
+    imagen = Image.open("logo.png")  # Reemplace con la ruta a su imagen
+    st.image(imagen)
 
 # Función de Cargar Datos
 def cargar_datos():
@@ -491,28 +488,6 @@ def analisis_geoespacial():
                     st.error(f"Error al cargar el shapefile: {e}")
     else:
         st.warning("Los datos no contienen columnas de Latitud y Longitud. No se puede realizar el análisis geoespacial.")
-
-# Menú Lateral
-st.sidebar.title("Menú")
-opcion = st.sidebar.radio(
-    "Seleccione una opción:",
-    [
-        "Inicio 🏠",
-        "Cargar Datos 📂",
-        "Resumen de Datos 📊",
-        "Análisis Exploratorio 🔍",
-        "Análisis Estadísticos 📈",
-        "Análisis de Componentes Principales (PCA) 🧭",
-        "Análisis de Clustering 🧬",
-        "Análisis de Correlaciones 🔗",
-        "Machine Learning 🤖",
-        "Predicciones 🔮",
-        "Exportar Resultados 📤",
-        "Visualización de Mapas 🗺️",
-        "Análisis Geoespacial 🌎",
-    ],
-    horizontal=False
-)
 
 # Mostrar contenido según selección del menú
 if __name__ == "__main__":
