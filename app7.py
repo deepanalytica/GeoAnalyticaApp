@@ -22,7 +22,6 @@ from holoviews.plotting.plotly.dash import to_dash
 from holoviews.operation.datashader import datashade
 from plotly.data import carshare
 from plotly.colors import sequential
-import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -286,13 +285,10 @@ def analisis_estadisticos():
             x_col = st.selectbox("Variable Independiente (X)", columnas_numericas)
             y_col = st.selectbox("Variable Dependiente (Y)", columnas_numericas)
             try:
-                # Utiliza statsmodels para la regresión lineal
-                modelo = sm.ols(f"{y_col} ~ {x_col}", data=datos)  
-                resultados = modelo.fit()
-                st.write("Resumen del modelo:")
-                st.write(resultados.summary())
-                st.write(f"Pendiente: {resultados.params[x_col]}")
-                st.write(f"Intersección: {resultados.params['Intercept']}")
+                modelo = LinearRegression()
+                modelo.fit(datos[[x_col]], datos[[y_col]])
+                st.write(f"Pendiente: {modelo.coef_[0][0]}")
+                st.write(f"Intersección: {modelo.intercept_[0]}")
                 fig = px.scatter(datos, x=x_col, y=y_col, trendline="ols", title=f"Regresión Lineal: {x_col} vs {y_col}")
                 st.plotly_chart(fig)
             except Exception as e:
