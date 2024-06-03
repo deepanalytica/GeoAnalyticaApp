@@ -23,6 +23,7 @@ from holoviews.operation.datashader import datashade
 from plotly.data import carshare
 from plotly.colors import sequential
 import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
+import panel as pn  # Importa la biblioteca Panel
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -160,8 +161,7 @@ def guardar_dataframe(datos, formato="csv"):
 def mostrar_inicio():
     st.title("Bienvenido a la Aplicación de Geoquímica Minera")
     st.write("Esta aplicación le permite analizar y visualizar datos geoquímicos de manera avanzada y profesional.")
-    imagen = Image.open("logo.png")  # Reemplace con la ruta a su imagen
-    st.image(imagen)
+    # Eliminar el logo de la pantalla principal
 
     # Mostrar KPI's en la página de inicio
     datos = st.session_state['datos']
@@ -504,6 +504,20 @@ def analisis_geoespacial():
     else:
         st.warning("Los datos no contienen columnas de Latitud y Longitud. No se puede realizar el análisis geoespacial.")
 
+# Crear el explorador de datos interactivo con Panel
+def explorador_datos():
+    st.title("Explorador de Datos Interactivo")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    # Crea un objeto Panel para el explorador de datos
+    interactive_explorer = pn.widgets.DataFrame(datos)
+
+    # Muestra el explorador de datos en Streamlit
+    st.components.v1.html(interactive_explorer.panel(), height=600) 
+
 # Mostrar contenido según selección del menú
 if __name__ == "__main__":
     if opcion == "Inicio 🏠":
@@ -532,3 +546,5 @@ if __name__ == "__main__":
         visualizar_mapas()
     elif opcion == "Análisis Geoespacial 🌎":
         analisis_geoespacial()
+    elif opcion == "Explorador Interactivo 🔎":
+        explorador_datos()  # Agrega la opción al menú y llama a la función
