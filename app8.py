@@ -253,23 +253,27 @@ def analisis_exploratorio():
     columna_seleccionada = st.selectbox("Selecciona una columna para el análisis exploratorio:", columnas_numericas)
     
     # Analizar la columna seleccionada
-    with st.expander("Histograma"):
-        fig = px.histogram(datos, x=columna_seleccionada, marginal="box", title=f"Histograma de {columna_seleccionada}")
-        st.plotly_chart(fig)
-
-    with st.expander("Diagrama de Cajas y Bigotes"):
-        fig = px.box(datos, x=columna_seleccionada, title=f"Diagrama de Cajas y Bigotes de {columna_seleccionada}")
-        st.plotly_chart(fig)
-
-    with st.expander("Diagrama de Dispersión"):
-        columnas_seleccionadas = st.multiselect("Selecciona una segunda columna para el diagrama de dispersión", columnas_numericas)
-        if columnas_seleccionadas:
-            fig = px.scatter(data_frame=datos, x=columna_seleccionada, y=columnas_seleccionadas[0], title=f"Dispersión de {columna_seleccionada} vs {columnas_seleccionadas[0]}")
+    with st.expander("Histograma y Diagrama de Cajas y Bigotes"):
+        # Layout en 2 columnas
+        col1, col2 = st.columns(2)
+        with col1:
+            fig = px.histogram(datos, x=columna_seleccionada, marginal="box", title=f"Histograma de {columna_seleccionada}")
+            st.plotly_chart(fig)
+        with col2:
+            fig = px.box(datos, x=columna_seleccionada, title=f"Diagrama de Cajas y Bigotes de {columna_seleccionada}")
             st.plotly_chart(fig)
 
-    with st.expander("Gráfico de Violin"):
-        fig = px.violin(datos, y=columna_seleccionada, box=True, points="all", title=f"Gráfico de Violin de {columna_seleccionada}")
-        st.plotly_chart(fig)
+    with st.expander("Diagrama de Dispersión y Gráfico de Violin"):
+        columnas_seleccionadas = st.multiselect("Selecciona una segunda columna para el diagrama de dispersión", columnas_numericas)
+        if columnas_seleccionadas:
+            # Layout en 2 columnas
+            col1, col2 = st.columns(2)
+            with col1:
+                fig = px.scatter(data_frame=datos, x=columna_seleccionada, y=columnas_seleccionadas[0], title=f"Dispersión de {columna_seleccionada} vs {columnas_seleccionadas[0]}")
+                st.plotly_chart(fig)
+            with col2:
+                fig = px.violin(datos, y=columna_seleccionada, box=True, points="all", title=f"Gráfico de Violin de {columna_seleccionada}")
+                st.plotly_chart(fig)
 
     # Visualizaciones interactivas con Seaborn
     st.subheader("Visualizaciones Interactivas con Seaborn")
@@ -281,25 +285,29 @@ def analisis_exploratorio():
     variable_y = st.selectbox("Selecciona la variable Y", columnas_numericas_seaborn)
     
     # Mostrar visualizaciones de Seaborn en recuadros
-    with st.expander("Análisis de Densidad de Kernel"):
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.kdeplot(data=datos, x=variable_x, y=variable_y, ax=ax, fill=True, cmap="viridis")
-        st.pyplot(fig)
+    with st.expander("Análisis de Densidad de Kernel y Diagrama de Dispersión con Marcadores"):
+        # Layout en 2 columnas
+        col1, col2 = st.columns(2)
+        with col1:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sns.kdeplot(data=datos, x=variable_x, y=variable_y, ax=ax, fill=True, cmap="viridis")
+            st.pyplot(fig)
+        with col2:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sns.scatterplot(data=datos, x=variable_x, y=variable_y, hue="Sample_ID", ax=ax, s=50, alpha=0.7)
+            st.pyplot(fig)
         
-    with st.expander("Diagrama de Dispersión con Marcadores"):
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.scatterplot(data=datos, x=variable_x, y=variable_y, hue="Sample_ID", ax=ax, s=50, alpha=0.7)
-        st.pyplot(fig)
-        
-    with st.expander("Diagrama de Caja y Bigotes para cada Muestra"):
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.boxplot(data=datos, x="Sample_ID", y=variable_y, ax=ax, showmeans=True, color="skyblue")
-        st.pyplot(fig)
-        
-    with st.expander("Histograma con Densidad de Kernel"):
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.histplot(data=datos, x=variable_x, kde=True, ax=ax, color="purple")
-        st.pyplot(fig)
+    with st.expander("Diagrama de Caja y Bigotes para cada Muestra y Histograma con Densidad de Kernel"):
+        # Layout en 2 columnas
+        col1, col2 = st.columns(2)
+        with col1:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sns.boxplot(data=datos, x="Sample_ID", y=variable_y, ax=ax, showmeans=True, color="skyblue")
+            st.pyplot(fig)
+        with col2:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sns.histplot(data=datos, x=variable_x, kde=True, ax=ax, color="purple")
+            st.pyplot(fig)
         
     with st.expander("Mapa de Calor de Correlación"):
         # Correlación entre todas las variables
