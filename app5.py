@@ -216,7 +216,7 @@ def resumen_datos():
 
     # Procesar valores bajo el límite de detección
     for columna in datos.columns:
-        if columna.startswith("Sample"):
+        if isinstance(columna, str) and columna.startswith("Sample"):
             continue
         if datos[columna].dtype == np.number:
             datos[columna] = datos[columna].replace("<", "", regex=True)
