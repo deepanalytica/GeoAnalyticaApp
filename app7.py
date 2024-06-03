@@ -170,14 +170,23 @@ def mostrar_inicio():
         st.subheader("KPIs")
         col1, col2, col3 = st.columns(3)
 
-        with col1:
-            st.metric("Media de Au", datos['Au_ppm'].mean(), help="Valor medio de oro en ppm")
+        try:
+            with col1:
+                st.metric("Media de Au", datos['Au'].mean(), help="Valor medio de oro en ppm")
+        except KeyError:
+            st.warning("La columna 'Au' no se encontró en los datos.")
 
-        with col2:
-            st.metric("Máximo de Cu", datos['Cu_ppm'].max(), help="Valor máximo de cobre en ppm")
+        try:
+            with col2:
+                st.metric("Máximo de Cu", datos['Cu'].max(), help="Valor máximo de cobre en ppm")
+        except KeyError:
+            st.warning("La columna 'Cu' no se encontró en los datos.")
 
-        with col3:
-            st.metric("Cantidad de Muestras", len(datos), help="Número total de muestras")
+        try:
+            with col3:
+                st.metric("Cantidad de Muestras", len(datos), help="Número total de muestras")
+        except KeyError:
+            st.warning("Error al calcular la cantidad de muestras.")
 
 # Función de Cargar Datos
 def cargar_datos():
