@@ -25,3 +25,4 @@ statsmodels
 panel
 streamlit-option-menu  
 altair
+factor_analyzer
