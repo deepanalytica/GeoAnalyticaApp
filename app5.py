@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.decomposition import PCA
@@ -24,7 +22,6 @@ from holoviews.plotting.plotly.dash import to_dash
 from holoviews.operation.datashader import datashade
 from plotly.data import carshare
 from plotly.colors import sequential
-import pygwalker as pg  # Importa la biblioteca pygwalker
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -115,7 +112,6 @@ opcion = st.sidebar.radio(
         "Exportar Resultados 📤",
         "Visualización de Mapas 🗺️",
         "Análisis Geoespacial 🌎",
-        "Pygwalker 🚶"
     ],
     horizontal=False
 )
@@ -242,25 +238,22 @@ def analisis_exploratorio():
     
     # Analizar la columna seleccionada
     with st.expander("Histograma"):
-        fig, ax = plt.subplots()
-        sns.histplot(data=datos, x=columna_seleccionada, kde=True, ax=ax)
-        st.pyplot(fig)
+        fig = px.histogram(datos, x=columna_seleccionada, marginal="box", title=f"Histograma de {columna_seleccionada}")
+        st.plotly_chart(fig)
 
     with st.expander("Diagrama de Cajas y Bigotes"):
-        fig, ax = plt.subplots()
-        sns.boxplot(data=datos, x=columna_seleccionada, ax=ax)  
-        st.pyplot(fig)
+        fig = px.box(datos, x=columna_seleccionada, title=f"Diagrama de Cajas y Bigotes de {columna_seleccionada}")
+        st.plotly_chart(fig)
 
     with st.expander("Diagrama de Dispersión"):
         columnas_seleccionadas = st.multiselect("Selecciona una segunda columna para el diagrama de dispersión", columnas_numericas)
         if columnas_seleccionadas:
-            fig = px.scatter(data_frame=datos, x=columna_seleccionada, y=columnas_seleccionadas[0])
+            fig = px.scatter(data_frame=datos, x=columna_seleccionada, y=columnas_seleccionadas[0], title=f"Dispersión de {columna_seleccionada} vs {columnas_seleccionadas[0]}")
             st.plotly_chart(fig)
 
     with st.expander("Gráfico de Violin"):
-        fig, ax = plt.subplots()
-        sns.violinplot(x=datos[columna_seleccionada], ax=ax)
-        st.pyplot(fig)
+        fig = px.violin(datos, y=columna_seleccionada, box=True, points="all", title=f"Gráfico de Violin de {columna_seleccionada}")
+        st.plotly_chart(fig)
 
 # Función de Análisis Estadísticos
 def analisis_estadisticos():
@@ -282,9 +275,8 @@ def analisis_estadisticos():
         st.subheader("Matriz de Correlación")
         if st.checkbox("Mostrar matriz de correlación"):
             corr = datos_numericos.corr()
-            fig, ax = plt.subplots()
-            sns.heatmap(corr, annot=True, cmap="coolwarm", ax=ax)
-            st.pyplot(fig)
+            fig = px.imshow(corr, color_continuous_scale="RdBu", labels=dict(x="Variable", y="Variable", color="Correlación"))
+            st.plotly_chart(fig)
 
     with st.container():
         st.subheader("Regresión Lineal")
@@ -297,7 +289,7 @@ def analisis_estadisticos():
                 modelo.fit(datos[[x_col]], datos[[y_col]])
                 st.write(f"Pendiente: {modelo.coef_[0][0]}")
                 st.write(f"Intersección: {modelo.intercept_[0]}")
-                fig = px.scatter(datos, x=x_col, y=y_col, trendline="ols")
+                fig = px.scatter(datos, x=x_col, y=y_col, trendline="ols", title=f"Regresión Lineal: {x_col} vs {y_col}")
                 st.plotly_chart(fig)
             except Exception as e:
                 st.error(f"Error en la Regresión Lineal: {e}")
@@ -333,7 +325,7 @@ def analisis_pca():
         st.write("Cargas Factoriales:", pca.components_)
         scores = pca.transform(datos_numericos)
         st.write("Scores de los Componentes:", scores)
-        fig = px.scatter_matrix(pd.DataFrame(scores), labels={col: f"PC{col+1}" for col in range(scores.shape[1])})
+        fig = px.scatter_matrix(pd.DataFrame(scores), labels={col: f"PC{col+1}" for col in range(scores.shape[1])}, title="Matriz de Dispersión de Componentes Principales")
         st.plotly_chart(fig)
 
 # Función de Análisis de Clustering
@@ -354,7 +346,7 @@ def analisis_clustering():
         kmeans.fit(datos_numericos)
         st.write("Centroides:", kmeans.cluster_centers_)
         st.write("Etiquetas de los Clusters:", kmeans.labels_)
-        fig = px.scatter(x=datos_numericos.iloc[:, 0], y=datos_numericos.iloc[:, 1], color=kmeans.labels_)
+        fig = px.scatter(x=datos_numericos.iloc[:, 0], y=datos_numericos.iloc[:, 1], color=kmeans.labels_, title="Clustering K-Means")
         st.plotly_chart(fig)
 
 # Función de Análisis de Correlaciones
@@ -384,9 +376,8 @@ def analisis_correlaciones():
             corr_df = pd.DataFrame(correlaciones, index=[0]).T.reset_index()
             corr_df.columns = ["Variable 1_Variable 2", "Correlación"]
             st.write(corr_df)
-            fig, ax = plt.subplots()
-            sns.heatmap(corr_df.pivot("Variable 1_Variable 2", "Correlación", "Correlación"), annot=True, cmap="coolwarm", ax=ax)
-            st.pyplot(fig)
+            fig = px.imshow(corr_df.pivot("Variable 1_Variable 2", "Correlación", "Correlación"), color_continuous_scale="RdBu", labels=dict(x="Variable 1", y="Variable 2", color="Correlación"), title="Matriz de Correlación")
+            st.plotly_chart(fig)
         else:
             st.warning("Seleccione al menos dos variables para analizar las correlaciones.")
 
@@ -411,12 +402,13 @@ def machine_learning():
                 predicciones = modelo.predict(X)
                 st.write("MSE:", mean_squared_error(y, predicciones))
                 st.write("R2:", r2_score(y, predicciones))
-                fig = px.scatter(x=y, y=predicciones, labels={'x': 'Valores Reales', 'y': 'Predicciones'})
+                fig = px.scatter(x=y, y=predicciones, labels={'x': 'Valores Reales', 'y': 'Predicciones'}, title="Predicciones de Random Forest")
                 fig.add_trace(go.Scatter(x=[min(y), max(y)], y=[min(y), max(y)], mode='lines', name='Ideal'))
                 st.plotly_chart(fig)
                 st.write("Importancias de las características:")
                 importancias = pd.Series(modelo.feature_importances_, index=feature_cols).sort_values(ascending=False)
-                st.bar_chart(importancias)
+                fig = px.bar(x=importancias.index, y=importancias.values, title="Importancia de las Características")
+                st.plotly_chart(fig)
 
 # Función de Predicciones
 def predicciones():
@@ -493,198 +485,6 @@ def analisis_geoespacial():
     else:
         st.warning("Los datos no contienen columnas de Latitud y Longitud. No se puede realizar el análisis geoespacial.")
 
-# Función para manejar la edición de celdas
-def editar_celdas():
-    st.title("Edición de Celdas")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    st.dataframe(datos, use_container_width=True)
-
-    # Guarda los cambios realizados en el DataFrame
-    st.session_state['datos'] = datos
-
-# Función para filtrar datos
-def filtrar_datos():
-    st.title("Filtrado de Datos")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    with st.container():
-        st.subheader("Filtrar por Nombre de Muestra")
-        nombre_muestra = st.text_input("Ingrese el nombre de la muestra:")
-        if nombre_muestra:
-            st.write("Datos filtrados:")
-            st.dataframe(datos[datos.index == nombre_muestra], use_container_width=True)
-
-    with st.container():
-        st.subheader("Filtrar por Valor de Columna")
-        columna_filtro = st.selectbox("Selecciona la columna para filtrar:", datos.columns)
-        valor_filtro = st.text_input("Ingrese el valor para filtrar:")
-        if columna_filtro and valor_filtro:
-            st.write("Datos filtrados:")
-            st.dataframe(datos[datos[columna_filtro] == valor_filtro], use_container_width=True)
-
-    with st.container():
-        st.subheader("Filtrar por Rango de Valores")
-        columna_rango = st.selectbox("Selecciona la columna para filtrar por rango:", datos.columns)
-        valor_min = st.number_input("Valor mínimo:", value=0, step=1)
-        valor_max = st.number_input("Valor máximo:", value=100, step=1)
-        if columna_rango:
-            st.write("Datos filtrados:")
-            st.dataframe(datos[(datos[columna_rango] >= valor_min) & (datos[columna_rango] <= valor_max)], use_container_width=True)
-
-# Función para agrupar datos
-def agrupar_datos():
-    st.title("Agrupación de Datos")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    with st.container():
-        st.subheader("Agrupar por Columna")
-        columna_agrupacion = st.selectbox("Selecciona la columna para agrupar:", datos.columns)
-        if columna_agrupacion:
-            st.write("Datos agrupados:")
-            st.dataframe(datos.groupby(columna_agrupacion).mean(), use_container_width=True)  # Calcula la media
-
-# Función para ordenar datos
-def ordenar_datos():
-    st.title("Ordenación de Datos")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    with st.container():
-        st.subheader("Ordenar por Columna")
-        columna_ordenacion = st.selectbox("Selecciona la columna para ordenar:", datos.columns)
-        orden_ascendente = st.checkbox("Orden Ascendente", value=True)
-        if columna_ordenacion:
-            st.write("Datos ordenados:")
-            if orden_ascendente:
-                st.dataframe(datos.sort_values(by=columna_ordenacion, ascending=True), use_container_width=True)
-            else:
-                st.dataframe(datos.sort_values(by=columna_ordenacion, ascending=False), use_container_width=True)
-
-# Función para insertar filas
-def insertar_filas():
-    st.title("Inserción de Filas")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    with st.container():
-        st.subheader("Agregar Nueva Fila")
-        nueva_fila = {}
-        for columna in datos.columns:
-            if datos[columna].dtype == np.number:
-                nueva_fila[columna] = st.number_input(f"Ingrese el valor para {columna}:", value=0, step=1)
-            else:
-                nueva_fila[columna] = st.text_input(f"Ingrese el valor para {columna}:")
-        if st.button("Agregar Fila"):
-            st.session_state['datos'] = datos.append(pd.DataFrame([nueva_fila]), ignore_index=True)
-            st.write("Fila agregada correctamente.")
-            st.dataframe(st.session_state['datos'], use_container_width=True)
-
-# Función para eliminar filas
-def eliminar_filas():
-    st.title("Eliminación de Filas")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    with st.container():
-        st.subheader("Eliminar Fila")
-        fila_a_eliminar = st.text_input("Ingrese el nombre de la muestra a eliminar:")
-        if fila_a_eliminar:
-            if fila_a_eliminar in datos.index:
-                st.session_state['datos'] = datos.drop(fila_a_eliminar)
-                st.write(f"Fila '{fila_a_eliminar}' eliminada correctamente.")
-                st.dataframe(st.session_state['datos'], use_container_width=True)
-            else:
-                st.warning(f"La fila '{fila_a_eliminar}' no existe en los datos.")
-
-# Función para insertar columnas
-def insertar_columnas():
-    st.title("Inserción de Columnas")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    with st.container():
-        st.subheader("Agregar Nueva Columna")
-        nombre_columna = st.text_input("Ingrese el nombre de la nueva columna:")
-        tipo_dato = st.selectbox("Tipo de dato:", ["numérico", "texto"])
-        if nombre_columna:
-            if tipo_dato == "numérico":
-                valores_columna = []
-                for _ in range(len(datos)):
-                    valores_columna.append(st.number_input(f"Ingrese el valor para la nueva columna en la fila {_+1}:", value=0, step=1))
-                st.session_state['datos'][nombre_columna] = valores_columna
-                st.write("Columna agregada correctamente.")
-                st.dataframe(st.session_state['datos'], use_container_width=True)
-            else:
-                valores_columna = []
-                for _ in range(len(datos)):
-                    valores_columna.append(st.text_input(f"Ingrese el valor para la nueva columna en la fila {_+1}:"))
-                st.session_state['datos'][nombre_columna] = valores_columna
-                st.write("Columna agregada correctamente.")
-                st.dataframe(st.session_state['datos'], use_container_width=True)
-
-# Función para eliminar columnas
-def eliminar_columnas():
-    st.title("Eliminación de Columnas")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    with st.container():
-        st.subheader("Eliminar Columna")
-        columna_a_eliminar = st.selectbox("Selecciona la columna a eliminar:", datos.columns)
-        if columna_a_eliminar:
-            st.session_state['datos'] = datos.drop(columna_a_eliminar, axis=1)
-            st.write(f"Columna '{columna_a_eliminar}' eliminada correctamente.")
-            st.dataframe(st.session_state['datos'], use_container_width=True)
-
-# Función para crear una nueva tabla vacía
-def crear_nueva_tabla():
-    st.title("Crear Nueva Tabla")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    with st.container():
-        st.subheader("Crear Nueva Tabla Vacía")
-        nombre_tabla = st.text_input("Ingrese el nombre de la nueva tabla:")
-        columnas_tabla = st.multiselect("Selecciona las columnas para la nueva tabla:", datos.columns)
-        if nombre_tabla and columnas_tabla:
-            st.session_state['datos'] = pd.DataFrame(columns=columnas_tabla)
-            st.write(f"Tabla '{nombre_tabla}' creada correctamente.")
-            st.dataframe(st.session_state['datos'], use_container_width=True)
-
-# Función para Pygwalker
-def pygwalker_app():
-    st.title("Pygwalker: Explorador de Datos Interactivo")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    # Crea un objeto pygwalker y configura la visualización de los datos
-    walker = pg.walk(datos)
-    walker.show()
-
 # Mostrar contenido según selección del menú
 if __name__ == "__main__":
     if opcion == "Inicio 🏠":
@@ -713,23 +513,3 @@ if __name__ == "__main__":
         visualizar_mapas()
     elif opcion == "Análisis Geoespacial 🌎":
         analisis_geoespacial()
-    elif opcion == "Pygwalker 🚶":  
-        pygwalker_app()
-    elif opcion == "Edición de Celdas ✏️":
-        editar_celdas()
-    elif opcion == "Filtrado de Datos 🔍":
-        filtrar_datos()
-    elif opcion == "Agrupación de Datos 📊":
-        agrupar_datos()
-    elif opcion == "Ordenación de Datos 📈":
-        ordenar_datos()
-    elif opcion == "Inserción de Filas ➕":
-        insertar_filas()
-    elif opcion == "Eliminación de Filas ➖":
-        eliminar_filas()
-    elif opcion == "Inserción de Columnas ➕":
-        insertar_columnas()
-    elif opcion == "Eliminación de Columnas ➖":
-        eliminar_columnas()
-    elif opcion == "Crear Nueva Tabla ➕":
-        crear_nueva_tabla()
