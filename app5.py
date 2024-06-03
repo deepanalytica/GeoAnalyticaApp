@@ -24,6 +24,7 @@ from holoviews.plotting.plotly.dash import to_dash
 from holoviews.operation.datashader import datashade
 from plotly.data import carshare
 from plotly.colors import sequential
+import pygwalker as pg  # Importa la biblioteca pygwalker
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -113,7 +114,8 @@ opcion = st.radio(
         "Exportar Resultados 📤",
         "Visualización de Mapas 🗺️",
         "Análisis Geoespacial 🌎",
-        "Chatbot 💬"
+        "Chatbot 💬",
+        "Pygwalker 🚶"  # Agrega Pygwalker al menú
     ],
     horizontal=True
 )
@@ -677,6 +679,18 @@ def crear_nueva_tabla():
             st.write(f"Tabla '{nombre_tabla}' creada correctamente.")
             st.dataframe(st.session_state['datos'], use_container_width=True)
 
+# Función para Pygwalker
+def pygwalker_app():
+    st.title("Pygwalker: Explorador de Datos Interactivo")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    # Crea un objeto pygwalker y configura la visualización de los datos
+    walker = pg.walk(datos)
+    walker.show()
+
 # Mostrar contenido según selección del menú
 if __name__ == "__main__":
     if opcion == "Inicio 🏠":
@@ -725,3 +739,5 @@ if __name__ == "__main__":
         eliminar_columnas()
     elif opcion == "Crear Nueva Tabla ➕":
         crear_nueva_tabla()
+    elif opcion == "Pygwalker 🚶":  # Ejecuta Pygwalker si se selecciona en el menú
+        pygwalker_app()
