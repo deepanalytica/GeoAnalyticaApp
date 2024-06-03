@@ -509,8 +509,11 @@ def explorador_datos():
     # Crea el explorador interactivo de datos con Panel
     interactive_explorer = pn.widgets.DataFrame(datos[columnas_mostrar])
     
-    # Muestra el explorador de datos en Streamlit
-    st.components.v1.html(interactive_explorer.panel(), height=600) 
+    # Crea un layout de Panel (en este caso, una fila)
+    layout = pn.Row(interactive_explorer)
+
+    # Muestra el layout de Panel en Streamlit
+    st.components.v1.html(layout.servable(), height=600) 
 
 # Mostrar contenido según selección del menú
 if __name__ == "__main__":
