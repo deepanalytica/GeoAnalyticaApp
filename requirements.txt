@@ -18,3 +18,4 @@ panel
 dash
 openpyxl
 pygwalker
+ipython
