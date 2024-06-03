@@ -24,7 +24,6 @@ from plotly.data import carshare
 from plotly.colors import sequential
 import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
 import panel as pn  # Importa la biblioteca Panel
-import altair as alt  # Importa Altair para gráficos interactivos
 import seaborn as sns  # Importa Seaborn para visualizaciones
 #from streamlit_option_menu import option_menu  # Importa el menú de opciones
 import matplotlib.pyplot as plt  # Importa Matplotlib
@@ -507,24 +506,11 @@ def explorador_datos():
     # Define las columnas a mostrar en el explorador
     columnas_mostrar = st.multiselect("Selecciona las columnas a mostrar", datos.columns)
 
-    # Crea el explorador interactivo de datos con Altair
-    interactive_explorer = alt.Chart(datos[columnas_mostrar]).mark_circle().encode(
-        alt.X(alt.repeat("column"), type="quantitative"),
-        alt.Y(alt.repeat("row"), type="quantitative"),
-        color="Sample_ID",
-        tooltip=[alt.Tooltip(column, title=column) for column in columnas_mostrar]
-    ).properties(
-        width=300,
-        height=300
-    ).repeat(
-        row=columnas_mostrar,
-        column=columnas_mostrar
-    )
-
-    # Print the chart dictionary to debug if needed:
-    # print(interactive_explorer.to_dict()) 
+    # Crea el explorador interactivo de datos con Panel
+    interactive_explorer = pn.widgets.DataFrame(datos[columnas_mostrar])
     
-    st.altair_chart(interactive_explorer, use_container_width=True)
+    # Muestra el explorador de datos en Streamlit
+    st.components.v1.html(interactive_explorer.panel(), height=600) 
 
 # Mostrar contenido según selección del menú
 if __name__ == "__main__":
