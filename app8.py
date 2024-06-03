@@ -26,7 +26,7 @@ import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
 import panel as pn  # Importa la biblioteca Panel
 import altair as alt  # Importa Altair para gráficos interactivos
 import seaborn as sns  # Importa Seaborn para visualizaciones
-from streamlit_option_menu import option_menu  # Importa el menú de opciones
+#from streamlit_option_menu import option_menu  # Importa el menú de opciones
 import matplotlib.pyplot as plt  # Importa Matplotlib
 
 # Configuración de la página
@@ -102,20 +102,23 @@ st.markdown(
 
 # Menú Lateral
 st.sidebar.title("Menú")
-opcion = option_menu(
-    "Geoquímica Minera",
-    ["Inicio 🏠", "Cargar Datos 📂", "Resumen de Datos 📊", "Análisis Exploratorio 🔍", "Análisis Estadísticos 📈",
-     "Análisis de Componentes Principales (PCA) 🧭", "Análisis de Clustering 🧬", "Análisis de Correlaciones 🔗",
-     "Machine Learning 🤖", "Predicciones 🔮", "Exportar Resultados 📤", "Explorador Interactivo 🔎"],
-    icons=["house", "file-earmark", "bar-chart-fill", "search", "graph-up", "compass", "dna", "link-45deg", "robot", "hourglass-split", "file-earmark-arrow-down", "eye"],
-    menu_icon="cast",
-    default_index=0,
-    styles={
-        "container": {"padding": "5!important", "background-color": "#fafafa"},
-        "icon": {"color": "orange", "font-size": "20px"},
-        "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px", "--hover-color": "#eee"},
-        "nav-link-selected": {"background-color": "#02ab21"},
-    }
+opcion = st.sidebar.radio(
+    "Seleccione una opción:",
+    [
+        "Inicio 🏠",
+        "Cargar Datos 📂",
+        "Resumen de Datos 📊",
+        "Análisis Exploratorio 🔍",
+        "Análisis Estadísticos 📈",
+        "Análisis de Componentes Principales (PCA) 🧭",
+        "Análisis de Clustering 🧬",
+        "Análisis de Correlaciones 🔗",
+        "Machine Learning 🤖",
+        "Predicciones 🔮",
+        "Exportar Resultados 📤",
+        "Explorador Interactivo 🔎"
+    ],
+    horizontal=False
 )
 
 # Inicializar el estado de sesión para datos
