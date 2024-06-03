@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit_shadcn_ui as ui
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -23,6 +24,8 @@ from holoviews.operation.datashader import datashade
 from plotly.data import carshare
 from plotly.colors import sequential
 import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
+from local_components import card_container
+from streamlit_shadcn_ui import slider, input, textarea, radio_group, switch
 
 # Instalar streamlit-shadcn-ui
 # pip install streamlit-shadcn-ui
