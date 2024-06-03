@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.cluster import KMeans, AgglomerativeClustering  # Importa AgglomerativeClustering
+from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
@@ -15,19 +15,19 @@ from io import BytesIO
 import base64
 from sklearn.impute import SimpleImputer
 import streamlit.components.v1 as components
-import geopandas as gpd  # Para análisis geoespacial
-import folium  # Para visualización de mapas
+import geopandas as gpd
+import folium
 import holoviews as hv
 from holoviews.plotting.plotly.dash import to_dash
 from holoviews.operation.datashader import datashade
 from plotly.data import carshare
 from plotly.colors import sequential
-import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
-import panel as pn  # Importa la biblioteca Panel
-import seaborn as sns  # Importa Seaborn para visualizaciones
-from streamlit_option_menu import option_menu  # Importa el menú de opciones
-import matplotlib.pyplot as plt  # Importa Matplotlib
-from factor_analyzer import FactorAnalyzer  # Importa FactorAnalyzer
+import statsmodels.formula.api as sm
+import panel as pn
+import seaborn as sns
+from streamlit_option_menu import option_menu
+import matplotlib.pyplot as plt
+from factor_analyzer import FactorAnalyzer
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -117,7 +117,7 @@ opcion = st.sidebar.radio(
         "Predicciones 🔮",
         "Exportar Resultados 📤",
         "Explorador Interactivo 🔎",
-        "Análisis Avanzados 🧪"  # Agrega la opción de Análisis Avanzados
+        "Análisis Avanzados 🧪"
     ],
     horizontal=False
 )
@@ -307,6 +307,47 @@ def analisis_exploratorio():
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
         st.pyplot(fig)
+        
+    # Visualizaciones avanzadas de Seaborn
+    st.subheader("Visualizaciones Avanzadas de Seaborn")
+    with st.expander("Anscombe’s Quartet"):
+        # Carga el conjunto de datos Anscombe’s Quartet
+        anscombe = sns.load_dataset('anscombe')
+
+        # Crea un subplot con 4 filas y 1 columna
+        fig, axes = plt.subplots(4, 1, figsize=(8, 12))
+
+        # Itera sobre los 4 conjuntos de datos de Anscombe’s Quartet
+        for i, group in enumerate(anscombe.groupby('dataset')):
+            # Obtén los datos del grupo
+            data = group[1]
+            
+            # Plotea el diagrama de dispersión para cada grupo en su correspondiente subplot
+            sns.scatterplot(data=data, x='x', y='y', ax=axes[i], label=group[0])
+            axes[i].set_title(f'Grupo {i+1}')
+            
+        st.pyplot(fig)
+        
+    with st.expander("Joint and Marginal Histograms"):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.jointplot(data=datos, x=variable_x, y=variable_y, kind='kde', ax=ax)
+        st.pyplot(fig)
+
+    with st.expander("Joint Kernel Density Estimate"):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.kdeplot(data=datos, x=variable_x, y=variable_y, ax=ax, shade=True, cmap="viridis")
+        st.pyplot(fig)
+
+    with st.expander("Overlapping Densities (‘ridge plot’)"):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.jointplot(data=datos, x=variable_x, y=variable_y, kind="kde", ax=ax, marginal_kws=dict(fill=True, linewidth=0), color="skyblue")
+        st.pyplot(fig)
+    
+    with st.expander("Bivariate Plot with Multiple Elements"):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.jointplot(data=datos, x=variable_x, y=variable_y, kind="kde", ax=ax, marginal_kws=dict(fill=True, linewidth=0), color="skyblue")
+        sns.scatterplot(data=datos, x=variable_x, y=variable_y, ax=ax, hue="Sample_ID", s=50, alpha=0.7)
+        st.pyplot(fig)
 
 # Función de Análisis Estadísticos
 def analisis_estadisticos():
@@ -408,7 +449,7 @@ def analisis_clustering():
             st.plotly_chart(fig)
         elif tipo_clustering == "Jerárquico":
             n_clusters = st.slider("Número de Clusters", 2, 10, 3)
-            agglomerative = AgglomerativeClustering(n_clusters=n_clusters)  # Crea el modelo de clustering jerárquico
+            agglomerative = AgglomerativeClustering(n_clusters=n_clusters)
             agglomerative.fit(datos_numericos)
             st.write("Etiquetas de los Clusters:", agglomerative.labels_)
             fig = px.scatter(x=datos_numericos.iloc[:, 0], y=datos_numericos.iloc[:, 1], color=agglomerative.labels_, title="Clustering Jerárquico")
