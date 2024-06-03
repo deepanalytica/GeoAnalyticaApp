@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, AgglomerativeClustering  # Importa AgglomerativeClustering
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
@@ -25,8 +25,9 @@ from plotly.colors import sequential
 import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
 import panel as pn  # Importa la biblioteca Panel
 import seaborn as sns  # Importa Seaborn para visualizaciones
-#from streamlit_option_menu import option_menu  # Importa el menú de opciones
+from streamlit_option_menu import option_menu  # Importa el menú de opciones
 import matplotlib.pyplot as plt  # Importa Matplotlib
+from factor_analyzer import FactorAnalyzer  # Importa FactorAnalyzer
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -115,7 +116,8 @@ opcion = st.sidebar.radio(
         "Machine Learning 🤖",
         "Predicciones 🔮",
         "Exportar Resultados 📤",
-        "Explorador Interactivo 🔎"
+        "Explorador Interactivo 🔎",
+        "Análisis Avanzados 🧪"  # Agrega la opción de Análisis Avanzados
     ],
     horizontal=False
 )
@@ -395,13 +397,22 @@ def analisis_clustering():
         return
     with st.container():
         st.subheader("Configuración del Clustering")
-        n_clusters = st.slider("Número de Clusters", 2, 10, 3)
-        kmeans = KMeans(n_clusters=n_clusters)
-        kmeans.fit(datos_numericos)
-        st.write("Centroides:", kmeans.cluster_centers_)
-        st.write("Etiquetas de los Clusters:", kmeans.labels_)
-        fig = px.scatter(x=datos_numericos.iloc[:, 0], y=datos_numericos.iloc[:, 1], color=kmeans.labels_, title="Clustering K-Means")
-        st.plotly_chart(fig)
+        tipo_clustering = st.selectbox("Tipo de Clustering", ["K-Means", "Jerárquico"])
+        if tipo_clustering == "K-Means":
+            n_clusters = st.slider("Número de Clusters", 2, 10, 3)
+            kmeans = KMeans(n_clusters=n_clusters)
+            kmeans.fit(datos_numericos)
+            st.write("Centroides:", kmeans.cluster_centers_)
+            st.write("Etiquetas de los Clusters:", kmeans.labels_)
+            fig = px.scatter(x=datos_numericos.iloc[:, 0], y=datos_numericos.iloc[:, 1], color=kmeans.labels_, title="Clustering K-Means")
+            st.plotly_chart(fig)
+        elif tipo_clustering == "Jerárquico":
+            n_clusters = st.slider("Número de Clusters", 2, 10, 3)
+            agglomerative = AgglomerativeClustering(n_clusters=n_clusters)  # Crea el modelo de clustering jerárquico
+            agglomerative.fit(datos_numericos)
+            st.write("Etiquetas de los Clusters:", agglomerative.labels_)
+            fig = px.scatter(x=datos_numericos.iloc[:, 0], y=datos_numericos.iloc[:, 1], color=agglomerative.labels_, title="Clustering Jerárquico")
+            st.plotly_chart(fig)
 
 # Function de Análisis de Correlaciones
 def analisis_correlaciones():
@@ -515,6 +526,47 @@ def explorador_datos():
     # Muestra el layout de Panel en Streamlit
     st.components.v1.html(layout.servable(), height=600) 
 
+# Función de Análisis Avanzados
+def analisis_avanzados():
+    st.title("Análisis Avanzados")
+    datos = st.session_state['datos']
+    if datos.empty:
+        st.warning("Por favor, cargue los datos primero.")
+        return
+
+    datos_numericos = datos.select_dtypes(include=[np.number])
+    if datos_numericos.empty:
+        st.warning("No hay suficientes columnas numéricas para el análisis.")
+        return
+
+    with st.container():
+        st.subheader("Análisis de Regresión Múltiple")
+        if st.checkbox("Realizar Regresión Múltiple"):
+            columnas_numericas = datos_numericos.columns.tolist()
+            y_col = st.selectbox("Variable Dependiente (Y)", columnas_numericas)
+            x_cols = st.multiselect("Variables Independientes (X)", columnas_numericas, default=columnas_numericas)
+            if y_col and x_cols:
+                formula = f"{y_col} ~ {' + '.join(x_cols)}"
+                try:
+                    modelo = sm.ols(formula, data=datos)
+                    resultados = modelo.fit()
+                    st.write("Resumen del modelo:")
+                    st.write(resultados.summary())
+                except Exception as e:
+                    st.error(f"Error en la Regresión Múltiple: {e}")
+
+    with st.container():
+        st.subheader("Análisis Factorial")
+        if st.checkbox("Realizar Análisis Factorial"):
+            n_factors = st.slider("Número de Factores", 1, len(datos_numericos.columns), 2)
+            try:
+                fa = FactorAnalyzer(n_factors=n_factors, rotation='varimax')
+                fa.fit(datos_numericos)
+                st.write("Cargas Factoriales:", fa.loadings_)
+                st.write("Varianza Explicada:", fa.get_factor_variance())
+            except Exception as e:
+                st.error(f"Error en el Análisis Factorial: {e}")
+
 # Mostrar contenido según selección del menú
 if __name__ == "__main__":
     if opcion == "Inicio 🏠":
@@ -541,3 +593,5 @@ if __name__ == "__main__":
         exportar_resultados()
     elif opcion == "Explorador Interactivo 🔎":
         explorador_datos()
+    elif opcion == "Análisis Avanzados 🧪":
+        analisis_avanzados()
