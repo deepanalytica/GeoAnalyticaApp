@@ -97,8 +97,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Menú Horizontal
-opcion = st.radio(
+# Menú Lateral
+st.sidebar.title("Menú")
+opcion = st.sidebar.radio(
     "Seleccione una opción:",
     [
         "Inicio 🏠",
@@ -114,10 +115,9 @@ opcion = st.radio(
         "Exportar Resultados 📤",
         "Visualización de Mapas 🗺️",
         "Análisis Geoespacial 🌎",
-        "Chatbot 💬",
-        "Pygwalker 🚶"  # Agrega Pygwalker al menú
+        "Pygwalker 🚶"
     ],
-    horizontal=True
+    horizontal=False
 )
 
 # Inicializar el estado de sesión para datos
@@ -493,12 +493,6 @@ def analisis_geoespacial():
     else:
         st.warning("Los datos no contienen columnas de Latitud y Longitud. No se puede realizar el análisis geoespacial.")
 
-# Función de Chatbot
-def chatbot():
-    st.title("Chatbot")
-    st.write("Esta sección está en desarrollo.")
-    # Implementar funcionalidades de chatbot
-
 # Función para manejar la edición de celdas
 def editar_celdas():
     st.title("Edición de Celdas")
@@ -719,8 +713,8 @@ if __name__ == "__main__":
         visualizar_mapas()
     elif opcion == "Análisis Geoespacial 🌎":
         analisis_geoespacial()
-    elif opcion == "Chatbot 💬":
-        chatbot()
+    elif opcion == "Pygwalker 🚶":  
+        pygwalker_app()
     elif opcion == "Edición de Celdas ✏️":
         editar_celdas()
     elif opcion == "Filtrado de Datos 🔍":
@@ -739,5 +733,3 @@ if __name__ == "__main__":
         eliminar_columnas()
     elif opcion == "Crear Nueva Tabla ➕":
         crear_nueva_tabla()
-    elif opcion == "Pygwalker 🚶":  
-        pygwalker_app()
