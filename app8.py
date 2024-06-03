@@ -27,6 +27,7 @@ import panel as pn  # Importa la biblioteca Panel
 import altair as alt  # Importa Altair para gráficos interactivos
 import seaborn as sns  # Importa Seaborn para visualizaciones
 from streamlit_option_menu import option_menu  # Importa el menú de opciones
+import matplotlib.pyplot as plt  # Importa Matplotlib
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -400,7 +401,7 @@ def analisis_clustering():
         fig = px.scatter(x=datos_numericos.iloc[:, 0], y=datos_numericos.iloc[:, 1], color=kmeans.labels_, title="Clustering K-Means")
         st.plotly_chart(fig)
 
-# Función de Análisis de Correlaciones
+# Function de Análisis de Correlaciones
 def analisis_correlaciones():
     st.title("Análisis de Correlaciones")
     datos = st.session_state['datos']
@@ -424,10 +425,19 @@ def analisis_correlaciones():
                         correlaciones[f"{col1}_{col2}"] = correlacion  # Concatenar nombres de columnas
             st.write("Correlaciones Calculadas:")
             st.write(correlaciones)
+            
+            # Create corr_df correctly
             corr_df = pd.DataFrame(correlaciones, index=[0]).T.reset_index()
             corr_df.columns = ["Variable 1_Variable 2", "Correlación"]
             st.write(corr_df)
-            fig = px.imshow(corr_df.pivot("Variable 1_Variable 2", "Correlación", "Correlación"), color_continuous_scale="RdBu", labels=dict(x="Variable 1", y="Variable 2", color="Correlación"), title="Matriz de Correlación")
+            
+            # Pivot and create the plot
+            fig = px.imshow(corr_df.pivot(index='Variable 1_Variable 2', 
+                                     columns='Correlación', 
+                                     values='Correlación'), 
+                       color_continuous_scale="RdBu", 
+                       labels=dict(x="Variable 1", y="Variable 2", color="Correlación"), 
+                       title="Matriz de Correlación")
             st.plotly_chart(fig)
         else:
             st.warning("Seleccione al menos dos variables para analizar las correlaciones.")
@@ -483,7 +493,7 @@ def exportar_resultados():
         guardar_dataframe(datos, formato="csv")
         guardar_dataframe(datos, formato="excel")
 
-# Función para crear el Explorador de Datos Interactivo
+# Function para crear el Explorador de Datos Interactivo
 def explorador_datos():
     st.title("Explorador de Datos Interactivo")
     datos = st.session_state['datos']
@@ -508,6 +518,9 @@ def explorador_datos():
         column=columnas_mostrar
     )
 
+    # Print the chart dictionary to debug if needed:
+    # print(interactive_explorer.to_dict()) 
+    
     st.altair_chart(interactive_explorer, use_container_width=True)
 
 # Mostrar contenido según selección del menú
