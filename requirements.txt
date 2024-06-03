@@ -19,3 +19,4 @@ dash
 openpyxl
 pygwalker
 ipython
+xlsxwriter
