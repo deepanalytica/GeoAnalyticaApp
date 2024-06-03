@@ -163,6 +163,21 @@ def mostrar_inicio():
     imagen = Image.open("logo.png")  # Reemplace con la ruta a su imagen
     st.image(imagen)
 
+    # Mostrar KPI's en la página de inicio
+    datos = st.session_state['datos']
+    if not datos.empty:
+        st.subheader("KPIs")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric("Media de Au", datos['Au_ppm'].mean(), help="Valor medio de oro en ppm")
+
+        with col2:
+            st.metric("Máximo de Cu", datos['Cu_ppm'].max(), help="Valor máximo de cobre en ppm")
+
+        with col3:
+            st.metric("Cantidad de Muestras", len(datos), help="Número total de muestras")
+
 # Función de Cargar Datos
 def cargar_datos():
     st.title("Cargar Datos")
