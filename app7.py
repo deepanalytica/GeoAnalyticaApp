@@ -114,6 +114,7 @@ opcion = st.sidebar.radio(
         "Exportar Resultados 📤",
         "Visualización de Mapas 🗺️",
         "Análisis Geoespacial 🌎",
+        "Explorador Interactivo 🔎"
     ],
     horizontal=False
 )
