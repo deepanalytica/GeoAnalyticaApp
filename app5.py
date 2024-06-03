@@ -739,5 +739,5 @@ if __name__ == "__main__":
         eliminar_columnas()
     elif opcion == "Crear Nueva Tabla ➕":
         crear_nueva_tabla()
-    elif opcion == "Pygwalker 🚶":  # Ejecuta Pygwalker si se selecciona en el menú
+    elif opcion == "Pygwalker 🚶":  
         pygwalker_app()
