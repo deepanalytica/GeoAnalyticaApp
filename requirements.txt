@@ -23,3 +23,5 @@ xlsxwriter
 streamlit-shadcn-ui
 statsmodels
 panel
+streamlit-option-menu  
+altair
