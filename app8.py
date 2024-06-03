@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns  # Importa Seaborn
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.decomposition import PCA
@@ -26,6 +24,7 @@ from plotly.data import carshare
 from plotly.colors import sequential
 import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
 import panel as pn  # Importa la biblioteca Panel
+import altair as alt  # Importa Altair para gráficos interactivos
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -114,8 +113,6 @@ opcion = st.sidebar.radio(
         "Machine Learning 🤖",
         "Predicciones 🔮",
         "Exportar Resultados 📤",
-        "Visualización de Mapas 🗺️",
-        "Análisis Geoespacial 🌎",
         "Explorador Interactivo 🔎"
     ],
     horizontal=False
@@ -172,23 +169,16 @@ def mostrar_inicio():
         st.subheader("KPIs")
         col1, col2, col3 = st.columns(3)
 
-        try:
-            with col1:
-                st.metric("Media de Au", datos['Au'].mean(), help="Valor medio de oro en ppm")
-        except KeyError:
-            st.warning("La columna 'Au' no se encontró en los datos.")
-
-        try:
-            with col2:
-                st.metric("Máximo de Cu", datos['Cu'].max(), help="Valor máximo de cobre en ppm")
-        except KeyError:
-            st.warning("La columna 'Cu' no se encontró en los datos.")
-
-        try:
-            with col3:
-                st.metric("Cantidad de Muestras", len(datos), help="Número total de muestras")
-        except KeyError:
-            st.warning("Error al calcular la cantidad de muestras.")
+        # Mostrar KPIs para todos los elementos químicos presentes
+        for columna in datos.columns:
+            if isinstance(columna, str) and columna.startswith("Sample"):
+                continue
+            if datos[columna].dtype == np.number:
+                try:
+                    with col1:
+                        st.metric(f"{columna}", datos[columna].mean(), help=f"Valor medio de {columna}")
+                except KeyError:
+                    st.warning(f"La columna '{columna}' no se encontró en los datos.")
 
 # Función de Cargar Datos
 def cargar_datos():
@@ -266,162 +256,22 @@ def analisis_exploratorio():
     
     # Analizar la columna seleccionada
     with st.expander("Histograma"):
-        fig, ax = plt.subplots()
-        sns.histplot(data=datos, x=columna_seleccionada, kde=True, ax=ax)
-        st.pyplot(fig)
+        fig = px.histogram(datos, x=columna_seleccionada, marginal="box", title=f"Histograma de {columna_seleccionada}")
+        st.plotly_chart(fig)
 
     with st.expander("Diagrama de Cajas y Bigotes"):
-        fig, ax = plt.subplots()
-        sns.boxplot(data=datos, x=columna_seleccionada, ax=ax)  
-        st.pyplot(fig)
+        fig = px.box(datos, x=columna_seleccionada, title=f"Diagrama de Cajas y Bigotes de {columna_seleccionada}")
+        st.plotly_chart(fig)
 
     with st.expander("Diagrama de Dispersión"):
         columnas_seleccionadas = st.multiselect("Selecciona una segunda columna para el diagrama de dispersión", columnas_numericas)
         if columnas_seleccionadas:
-            fig, ax = plt.subplots()
-            sns.scatterplot(data=datos, x=columna_seleccionada, y=columnas_seleccionadas[0], ax=ax)
-            st.pyplot(fig)
+            fig = px.scatter(data_frame=datos, x=columna_seleccionada, y=columnas_seleccionadas[0], title=f"Dispersión de {columna_seleccionada} vs {columnas_seleccionadas[0]}")
+            st.plotly_chart(fig)
 
     with st.expander("Gráfico de Violin"):
-        fig, ax = plt.subplots()
-        sns.violinplot(x=datos[columna_seleccionada], ax=ax)
-        st.pyplot(fig)
-
-    # Ejemplo de gráfico con Seaborn (Anscombe's Quartet)
-    with st.expander("Anscombe's Quartet"):
-        anscombe = sns.load_dataset('anscombe')
-        fig, axes = plt.subplots(2, 2, sharex=False, sharey=False)
-        for i, col in enumerate(['x', 'y']):
-            row = i // 2
-            col = i % 2
-            sns.scatterplot(data=anscombe, x=f"{col + 1}_x", y=f"{col + 1}_y", ax=axes[row, col])
-        st.pyplot(fig)
-
-    # Gráfico de dispersión con diferentes colores y tamaños de puntos
-    with st.expander("Scatterplot con colores y tamaños variables"):
-        columnas_seleccionadas = st.multiselect("Selecciona dos columnas para el gráfico de dispersión (X e Y)", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            x_col = columnas_seleccionadas[0]
-            y_col = columnas_seleccionadas[1]
-            hue_col = st.selectbox("Selecciona una columna para el color de los puntos (HUE)", columnas_numericas)
-            size_col = st.selectbox("Selecciona una columna para el tamaño de los puntos (SIZE)", columnas_numericas)
-            fig, ax = plt.subplots()
-            sns.scatterplot(data=datos, x=x_col, y=y_col, hue=hue_col, size=size_col, ax=ax)
-            st.pyplot(fig)
-
-    # Gráfico de dispersión con variables categóricas
-    with st.expander("Scatterplot con variables categóricas"):
-        columnas_seleccionadas = st.multiselect("Selecciona dos columnas para el gráfico de dispersión (X e Y)", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            x_col = columnas_seleccionadas[0]
-            y_col = columnas_seleccionadas[1]
-            hue_col = st.selectbox("Selecciona una columna categórica para el color de los puntos (HUE)", datos.select_dtypes(include='object').columns.tolist())
-            fig, ax = plt.subplots()
-            sns.scatterplot(data=datos, x=x_col, y=y_col, hue=hue_col, ax=ax)
-            st.pyplot(fig)
-
-    # Matriz de dispersión
-    with st.expander("Matriz de Dispersión"):
-        columnas_seleccionadas = st.multiselect("Selecciona las columnas para la matriz de dispersión", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            fig, ax = plt.subplots()
-            sns.pairplot(data=datos[columnas_seleccionadas], hue=st.selectbox("Selecciona una columna categórica para el color (HUE)", datos.select_dtypes(include='object').columns.tolist()), diag_kind="kde")
-            st.pyplot(fig)
-
-    # Gráfico de densidad con histogramas marginales
-    with st.expander("Gráfico de Densidad con Histogramas Marginales"):
-        columnas_seleccionadas = st.multiselect("Selecciona dos columnas para el gráfico de densidad", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            x_col = columnas_seleccionadas[0]
-            y_col = columnas_seleccionadas[1]
-            fig, ax = plt.subplots()
-            sns.jointplot(data=datos, x=x_col, y=y_col, kind='kde', ax=ax)
-            st.pyplot(fig)
-
-    # Mapa de calor de dispersión
-    with st.expander("Mapa de Calor de Dispersión"):
-        columnas_seleccionadas = st.multiselect("Selecciona dos columnas para el mapa de calor", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            x_col = columnas_seleccionadas[0]
-            y_col = columnas_seleccionadas[1]
-            fig, ax = plt.subplots()
-            sns.kdeplot(data=datos, x=x_col, y=y_col, cmap="viridis", fill=True, ax=ax)
-            st.pyplot(fig)
-
-    # Histograma apilado en escala logarítmica
-    with st.expander("Histograma Apilado en Escala Logarítmica"):
-        columnas_seleccionadas = st.multiselect("Selecciona las columnas para el histograma apilado", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            fig, ax = plt.subplots()
-            sns.histplot(data=datos[columnas_seleccionadas], multiple="stack", log_scale=True, ax=ax)
-            st.pyplot(fig)
-
-    # Gráfico de barras agrupadas
-    with st.expander("Gráfico de Barras Agrupadas"):
-        columnas_seleccionadas = st.multiselect("Selecciona las columnas para el gráfico de barras agrupadas", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            hue_col = st.selectbox("Selecciona una columna categórica para el agrupamiento (HUE)", datos.select_dtypes(include='object').columns.tolist())
-            fig, ax = plt.subplots()
-            sns.barplot(data=datos[columnas_seleccionadas], x=columnas_seleccionadas[0], y=columnas_seleccionadas[1], hue=hue_col, ax=ax)
-            st.pyplot(fig)
-
-    # Gráfico de cajas agrupadas
-    with st.expander("Gráfico de Cajas Agrupadas"):
-        columnas_seleccionadas = st.multiselect("Selecciona las columnas para el gráfico de cajas agrupadas", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            hue_col = st.selectbox("Selecciona una columna categórica para el agrupamiento (HUE)", datos.select_dtypes(include='object').columns.tolist())
-            fig, ax = plt.subplots()
-            sns.boxplot(data=datos[columnas_seleccionadas], x=columnas_seleccionadas[0], y=columnas_seleccionadas[1], hue=hue_col, ax=ax)
-            st.pyplot(fig)
-
-    # Gráfico de violín agrupado con violines divididos
-    with st.expander("Gráfico de Violín Agrupado con Violines Divididos"):
-        columnas_seleccionadas = st.multiselect("Selecciona las columnas para el gráfico de violín agrupado", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            hue_col = st.selectbox("Selecciona una columna categórica para el agrupamiento (HUE)", datos.select_dtypes(include='object').columns.tolist())
-            fig, ax = plt.subplots()
-            sns.violinplot(data=datos[columnas_seleccionadas], x=columnas_seleccionadas[0], y=columnas_seleccionadas[1], hue=hue_col, split=True, ax=ax)
-            st.pyplot(fig)
-
-    # Gráfico de calor con anotaciones
-    with st.expander("Mapa de Calor con Anotaciones"):
-        columnas_seleccionadas = st.multiselect("Selecciona las columnas para el mapa de calor", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            fig, ax = plt.subplots()
-            sns.heatmap(datos[columnas_seleccionadas].corr(), annot=True, cmap="viridis", ax=ax)
-            st.pyplot(fig)
-
-    # Gráfico de regresión sobre un gráfico de franjas
-    with st.expander("Regresión sobre un Gráfico de Franjas"):
-        columnas_seleccionadas = st.multiselect("Selecciona las columnas para el gráfico de franjas", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            hue_col = st.selectbox("Selecciona una columna categórica para el agrupamiento (HUE)", datos.select_dtypes(include='object').columns.tolist())
-            fig, ax = plt.subplots()
-            sns.stripplot(data=datos[columnas_seleccionadas], x=columnas_seleccionadas[0], y=columnas_seleccionadas[1], hue=hue_col, ax=ax)
-            sns.regplot(data=datos[columnas_seleccionadas], x=columnas_seleccionadas[0], y=columnas_seleccionadas[1], scatter=False, ax=ax)
-            st.pyplot(fig)
-
-    # Gráfico de densidad suavizado con histogramas marginales
-    with st.expander("Gráfico de Densidad Suavizado con Histogramas Marginales"):
-        columnas_seleccionadas = st.multiselect("Selecciona dos columnas para el gráfico de densidad suavizado", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            x_col = columnas_seleccionadas[0]
-            y_col = columnas_seleccionadas[1]
-            fig, ax = plt.subplots()
-            sns.jointplot(data=datos, x=x_col, y=y_col, kind='kde', ax=ax)
-            st.pyplot(fig)
-
-    # Gráfico de dispersión con diferentes colores y tamaños de puntos
-    with st.expander("Scatterplot con colores y tamaños variables"):
-        columnas_seleccionadas = st.multiselect("Selecciona dos columnas para el gráfico de dispersión (X e Y)", columnas_numericas)
-        if len(columnas_seleccionadas) >= 2:
-            x_col = columnas_seleccionadas[0]
-            y_col = columnas_seleccionadas[1]
-            hue_col = st.selectbox("Selecciona una columna para el color de los puntos (HUE)", columnas_numericas)
-            size_col = st.selectbox("Selecciona una columna para el tamaño de los puntos (SIZE)", columnas_numericas)
-            fig, ax = plt.subplots()
-            sns.scatterplot(data=datos, x=x_col, y=y_col, hue=hue_col, size=size_col, ax=ax)
-            st.pyplot(fig)
+        fig = px.violin(datos, y=columna_seleccionada, box=True, points="all", title=f"Gráfico de Violin de {columna_seleccionada}")
+        st.plotly_chart(fig)
 
 # Función de Análisis Estadísticos
 def analisis_estadisticos():
@@ -603,60 +453,7 @@ def exportar_resultados():
         guardar_dataframe(datos, formato="csv")
         guardar_dataframe(datos, formato="excel")
 
-# Función de Visualización de Mapas
-def visualizar_mapas():
-    st.title("Visualización de Mapas")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-
-    # Verificar si hay columnas de latitud y longitud
-    if 'Latitud' in datos.columns and 'Longitud' in datos.columns:
-        with st.container():
-            st.subheader("Mapa Interactivo")
-            # Crear el mapa con folium
-            mapa = folium.Map(location=[datos['Latitud'].mean(), datos['Longitud'].mean()], zoom_start=5)
-            # Agregar marcadores para cada punto de datos
-            for index, row in datos.iterrows():
-                folium.Marker([row['Latitud'], row['Longitud']], popup=f"Punto {index+1}").add_to(mapa)
-            # Mostrar el mapa en Streamlit
-            st_data = BytesIO()
-            mapa.save(st_data, close_file=False)
-            st.components.v1.html(st_data.getvalue(), height=500)
-    else:
-        st.warning("Los datos no contienen columnas de Latitud y Longitud. No se puede crear el mapa.")
-
-
-# Función de Análisis Geoespacial
-def analisis_geoespacial():
-    st.title("Análisis Geoespacial")
-    datos = st.session_state['datos']
-    if datos.empty:
-        st.warning("Por favor, cargue los datos primero.")
-        return
-    
-    # Verificar si hay columnas de latitud y longitud
-    if 'Latitud' in datos.columns and 'Longitud' in datos.columns:
-        with st.container():
-            st.subheader("Cargar Shapefile")
-            shapefile = st.file_uploader("Sube un archivo Shapefile (.shp)", type=["shp"])
-            if shapefile is not None:
-                try:
-                    # Cargar el shapefile con GeoPandas
-                    gdf = gpd.read_file(shapefile)
-                    st.write(gdf.head())
-                    
-                    # ... Agregar código para realizar análisis geoespacial ...
-                    
-                    # Mostrar el resultado del análisis geoespacial
-                    st.write("Resultado del análisis geoespacial:")
-                except Exception as e:
-                    st.error(f"Error al cargar el shapefile: {e}")
-    else:
-        st.warning("Los datos no contienen columnas de Latitud y Longitud. No se puede realizar el análisis geoespacial.")
-
-# Crear el explorador de datos interactivo con Panel
+# Función para crear el Explorador de Datos Interactivo
 def explorador_datos():
     st.title("Explorador de Datos Interactivo")
     datos = st.session_state['datos']
@@ -664,11 +461,24 @@ def explorador_datos():
         st.warning("Por favor, cargue los datos primero.")
         return
 
-    # Crea un objeto Panel para el explorador de datos
-    interactive_explorer = pn.widgets.DataFrame(datos)
+    # Define las columnas a mostrar en el explorador
+    columnas_mostrar = st.multiselect("Selecciona las columnas a mostrar", datos.columns)
 
-    # Muestra el explorador de datos en Streamlit
-    st.components.v1.html(interactive_explorer.panel(), height=600) 
+    # Crea el explorador interactivo de datos con Altair
+    interactive_explorer = alt.Chart(datos[columnas_mostrar]).mark_circle().encode(
+        alt.X(alt.repeat("column"), type="quantitative"),
+        alt.Y(alt.repeat("row"), type="quantitative"),
+        color="Sample_ID",
+        tooltip=[alt.Tooltip(column, title=column) for column in columnas_mostrar]
+    ).properties(
+        width=300,
+        height=300
+    ).repeat(
+        row=columnas_mostrar,
+        column=columnas_mostrar
+    )
+
+    st.altair_chart(interactive_explorer, use_container_width=True)
 
 # Mostrar contenido según selección del menú
 if __name__ == "__main__":
@@ -694,9 +504,5 @@ if __name__ == "__main__":
         predicciones()
     elif opcion == "Exportar Resultados 📤":
         exportar_resultados()
-    elif opcion == "Visualización de Mapas 🗺️":
-        visualizar_mapas()
-    elif opcion == "Análisis Geoespacial 🌎":
-        analisis_geoespacial()
     elif opcion == "Explorador Interactivo 🔎":
-        explorador_datos()  # Agrega la opción al menú y llama a la función
+        explorador_datos()
