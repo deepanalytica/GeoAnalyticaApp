@@ -20,5 +20,5 @@ openpyxl
 pygwalker
 ipython
 xlsxwriter
-statsmodels
 streamlit-shadcn-ui
+statsmodels
