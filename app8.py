@@ -25,6 +25,8 @@ from plotly.colors import sequential
 import statsmodels.formula.api as sm  # Importa statsmodels para la regresión
 import panel as pn  # Importa la biblioteca Panel
 import altair as alt  # Importa Altair para gráficos interactivos
+import seaborn as sns  # Importa Seaborn para visualizaciones
+from streamlit_option_menu import option_menu  # Importa el menú de opciones
 
 # Configuración de la página
 st.set_page_config(page_title="Geoquímica Minera", layout="wide", page_icon=":bar_chart:")
@@ -99,23 +101,20 @@ st.markdown(
 
 # Menú Lateral
 st.sidebar.title("Menú")
-opcion = st.sidebar.radio(
-    "Seleccione una opción:",
-    [
-        "Inicio 🏠",
-        "Cargar Datos 📂",
-        "Resumen de Datos 📊",
-        "Análisis Exploratorio 🔍",
-        "Análisis Estadísticos 📈",
-        "Análisis de Componentes Principales (PCA) 🧭",
-        "Análisis de Clustering 🧬",
-        "Análisis de Correlaciones 🔗",
-        "Machine Learning 🤖",
-        "Predicciones 🔮",
-        "Exportar Resultados 📤",
-        "Explorador Interactivo 🔎"
-    ],
-    horizontal=False
+opcion = option_menu(
+    "Geoquímica Minera",
+    ["Inicio 🏠", "Cargar Datos 📂", "Resumen de Datos 📊", "Análisis Exploratorio 🔍", "Análisis Estadísticos 📈",
+     "Análisis de Componentes Principales (PCA) 🧭", "Análisis de Clustering 🧬", "Análisis de Correlaciones 🔗",
+     "Machine Learning 🤖", "Predicciones 🔮", "Exportar Resultados 📤", "Explorador Interactivo 🔎"],
+    icons=["house", "file-earmark", "bar-chart-fill", "search", "graph-up", "compass", "dna", "link-45deg", "robot", "hourglass-split", "file-earmark-arrow-down", "eye"],
+    menu_icon="cast",
+    default_index=0,
+    styles={
+        "container": {"padding": "5!important", "background-color": "#fafafa"},
+        "icon": {"color": "orange", "font-size": "20px"},
+        "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px", "--hover-color": "#eee"},
+        "nav-link-selected": {"background-color": "#02ab21"},
+    }
 )
 
 # Inicializar el estado de sesión para datos
@@ -161,25 +160,19 @@ def guardar_dataframe(datos, formato="csv"):
 def mostrar_inicio():
     st.title("Bienvenido a la Aplicación de Geoquímica Minera")
     st.write("Esta aplicación le permite analizar y visualizar datos geoquímicos de manera avanzada y profesional.")
-    # Eliminar el logo de la pantalla principal
 
-    # Mostrar KPI's en la página de inicio
+    # Mostrar KPI's en tarjetas
     datos = st.session_state['datos']
     if not datos.empty:
         st.subheader("KPIs")
-        col1, col2, col3 = st.columns(3)
-
-        # Mostrar KPIs para todos los elementos químicos presentes
-        for columna in datos.columns:
-            if isinstance(columna, str) and columna.startswith("Sample"):
-                continue
-            if datos[columna].dtype == np.number:
-                try:
-                    with col1:
-                        st.metric(f"{columna}", datos[columna].mean(), help=f"Valor medio de {columna}")
-                except KeyError:
-                    st.warning(f"La columna '{columna}' no se encontró en los datos.")
-
+        # Obtener columnas numéricas (elementos químicos)
+        columnas_numericas = datos.select_dtypes(include=[np.number]).columns.tolist()
+        # Crear una tarjeta para cada elemento químico
+        for columna in columnas_numericas:
+            if columna != "Sample_ID":
+                with st.container():
+                    st.metric(f"{columna}", datos[columna].mean(), help=f"Valor medio de {columna}")
+                    
 # Función de Cargar Datos
 def cargar_datos():
     st.title("Cargar Datos")
@@ -272,6 +265,43 @@ def analisis_exploratorio():
     with st.expander("Gráfico de Violin"):
         fig = px.violin(datos, y=columna_seleccionada, box=True, points="all", title=f"Gráfico de Violin de {columna_seleccionada}")
         st.plotly_chart(fig)
+
+    # Visualizaciones interactivas con Seaborn
+    st.subheader("Visualizaciones Interactivas con Seaborn")
+    # Obtener columnas numéricas para Seaborn
+    columnas_numericas_seaborn = [col for col in datos.columns if datos[col].dtype == np.number and col != "Sample_ID"]
+    
+    # Seleccionar variables para la visualización de Seaborn
+    variable_x = st.selectbox("Selecciona la variable X", columnas_numericas_seaborn)
+    variable_y = st.selectbox("Selecciona la variable Y", columnas_numericas_seaborn)
+    
+    # Mostrar visualizaciones de Seaborn en recuadros
+    with st.expander("Análisis de Densidad de Kernel"):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.kdeplot(data=datos, x=variable_x, y=variable_y, ax=ax, fill=True, cmap="viridis")
+        st.pyplot(fig)
+        
+    with st.expander("Diagrama de Dispersión con Marcadores"):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.scatterplot(data=datos, x=variable_x, y=variable_y, hue="Sample_ID", ax=ax, s=50, alpha=0.7)
+        st.pyplot(fig)
+        
+    with st.expander("Diagrama de Caja y Bigotes para cada Muestra"):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.boxplot(data=datos, x="Sample_ID", y=variable_y, ax=ax, showmeans=True, color="skyblue")
+        st.pyplot(fig)
+        
+    with st.expander("Histograma con Densidad de Kernel"):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.histplot(data=datos, x=variable_x, kde=True, ax=ax, color="purple")
+        st.pyplot(fig)
+        
+    with st.expander("Mapa de Calor de Correlación"):
+        # Correlación entre todas las variables
+        corr = datos.corr()
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
+        st.pyplot(fig)
 
 # Función de Análisis Estadísticos
 def analisis_estadisticos():
