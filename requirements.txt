@@ -17,3 +17,4 @@ cartopy
 panel
 dash
 openpyxl
+pygwalker
