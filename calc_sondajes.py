@@ -3,7 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 # Título de la aplicación
-st.title("Optimización de Costos de Sondajes")
+st.title("Optimización de Costos de Sondajes (3D)")
 
 # Parámetros de perforación (metros por día)
 PARAMETROS_PERFORACION = {
@@ -16,64 +16,58 @@ def calcular_costos(tipo_sondaje, metros):
     costo_metro = {"Diamantina": 100, "Aire Reverso": 80}
     return costo_metro.get(tipo_sondaje, "Tipo de sondaje inválido") * metros
 
-# Función para crear el gráfico
-def graficar_costos(costo_diamantina, costo_aire_reverso, tiempo_diamantina, tiempo_aire_reverso, metros_rango):
-    fig = go.Figure()
+# Función para crear el gráfico 3D
+def graficar_costos_3d(tipo_sondaje):
+    # Rango de metros y días a simular
+    metros_rango = np.arange(10, 510, 50) 
+    dias_rango = np.arange(1, 21, 1)
 
-    # Gráfico de costos
-    fig.add_trace(go.Scatter(x=metros_rango, y=costo_diamantina,
-                            mode='lines', name='Costo Diamantina',
-                            line=dict(color='royalblue', dash='dot')))
-    fig.add_trace(go.Scatter(x=metros_rango, y=costo_aire_reverso,
-                            mode='lines', name='Costo Aire Reverso',
-                            line=dict(color='firebrick', dash='dot')))
+    # Crear una malla con los rangos
+    metros_malla, dias_malla = np.meshgrid(metros_rango, dias_rango)
 
-    # Gráfico de tiempo (como barras apiladas para rango)
-    fig.add_trace(go.Bar(x=metros_rango, y=tiempo_diamantina["max"] - tiempo_diamantina["min"], 
-                        base=tiempo_diamantina["min"], name="Tiempo Diamantina (rango)", 
-                        marker_color='royalblue', opacity=0.5))
-    fig.add_trace(go.Bar(x=metros_rango, y=tiempo_aire_reverso["max"] - tiempo_aire_reverso["min"], 
-                        base=tiempo_aire_reverso["min"], name="Tiempo Aire Reverso (rango)", 
-                        marker_color='firebrick', opacity=0.5)) 
+    # Calcular la tasa de perforación (metros/día) para cada punto de la malla
+    tasa_perforacion = np.random.uniform(PARAMETROS_PERFORACION[tipo_sondaje]["min"],
+                                      PARAMETROS_PERFORACION[tipo_sondaje]["max"],
+                                      size=metros_malla.shape)
 
-    fig.update_layout(title="Comparación de Costos y Tiempo de Sondaje",
-                      xaxis_title="Metros a Perforar",
-                      yaxis_title="Costo total ($) / Tiempo (días)",
-                      legend_title="Leyenda",
-                      yaxis=dict(rangemode='tozero'),  # Ajusta el eje y para empezar en cero
-                      hovermode="x unified")
+    # Calcular los metros perforados en función del tiempo
+    metros_perforados = dias_malla * tasa_perforacion
+
+    # Asegurar que no se exceda el límite de metros 
+    metros_perforados = np.where(metros_perforados <= metros_rango[-1], metros_perforados, metros_rango[-1])
+
+    # Calcular el costo para cada punto
+    costo_total = calcular_costos(tipo_sondaje, metros_perforados)
+
+    # Crear el gráfico 3D
+    fig = go.Figure(data=[go.Surface(z=costo_total, x=dias_malla, y=metros_perforados,
+                                   colorscale='Viridis',
+                                   colorbar=dict(title="Costo Total ($)"))])
+
+    fig.update_layout(title=f"Relación Costo-Tiempo-Metros ({tipo_sondaje})",
+                      scene=dict(xaxis_title="Tiempo (días)",
+                                 yaxis_title="Metros Perforados",
+                                 zaxis_title="Costo Total ($)"),
+                      autosize=False,
+                      width=800, height=600)
     st.plotly_chart(fig)
 
 # Barra lateral para ingresar los datos
 st.sidebar.header("Parámetros de Sondaje")
 tipo_sondaje = st.sidebar.selectbox("Tipo de Sondaje", ["Diamantina", "Aire Reverso"])
-metros = st.sidebar.slider("Metros a Perforar", min_value=10, max_value=500, value=50, step=10)
 
-# Cálculos para el gráfico
-metros_rango = np.arange(10, metros + 10, 10)
-costo_diamantina = [calcular_costos("Diamantina", m) for m in metros_rango]
-costo_aire_reverso = [calcular_costos("Aire Reverso", m) for m in metros_rango]
+# Mostrar el gráfico 3D
+graficar_costos_3d(tipo_sondaje)
 
-# Calcular rango de tiempo en días
-tiempo_diamantina = {"min": metros_rango / PARAMETROS_PERFORACION["Diamantina"]["max"],
-                   "max": metros_rango / PARAMETROS_PERFORACION["Diamantina"]["min"]}
-tiempo_aire_reverso = {"min": metros_rango / PARAMETROS_PERFORACION["Aire Reverso"]["max"],
-                    "max": metros_rango / PARAMETROS_PERFORACION["Aire Reverso"]["min"]}
+# Explicación del gráfico
+st.write("""
+**Interpretación del gráfico 3D:**
 
-# Mostrar resultados
-st.header("Resultados")
-st.write(f"Costo total del sondaje: **${calcular_costos(tipo_sondaje, metros):.2f}**")
+- **Eje X (Tiempo):** Representa el número de días de trabajo.
+- **Eje Y (Metros Perforados):** Muestra la cantidad de metros perforados.
+- **Eje Z (Costo Total):** Indica el costo total en función del tiempo y los metros perforados.
 
-# Mostrar el gráfico
-graficar_costos(costo_diamantina, costo_aire_reverso, tiempo_diamantina, tiempo_aire_reverso, metros_rango)
+**Análisis:**
 
-# Análisis
-st.header("Análisis de Costos y Tiempo")
-
-st.write("El gráfico muestra la relación entre costo, tiempo y metros perforados. Observa:")
-st.write("- La línea punteada representa el costo total, mientras que la barra sólida representa el rango de tiempo (días) para completar la perforación.")
-st.write("- Puedes analizar el trade-off entre costo y tiempo: Aire Reverso es generalmente más rápido pero puede ser más costoso en algunos casos.")
-
-st.write("**Recomendaciones:**")
-st.write("- Considera el costo total y el tiempo necesario para completar el proyecto.")
-st.write("- Ajusta los parámetros de perforación en el código para reflejar con mayor precisión las capacidades de tu equipo y las condiciones del terreno.") 
+El gráfico te permite visualizar cómo interactúan el costo, el tiempo y los metros perforados. Puedes observar cómo el costo aumenta con el tiempo y la cantidad de metros. 
+""")
