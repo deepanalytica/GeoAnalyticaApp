@@ -1,9 +1,7 @@
 import streamlit as st
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from mpl_toolkits.mplot3d import Axes3D
+import plotly.graph_objects as go
+import plotly.express as px
 
 st.title("Calculadora y Visualizador de Costos de Sondajes Mineros")
 
@@ -55,76 +53,61 @@ st.header("Visualización de Datos")
 
 # Gráfica de Metros Perforados
 st.subheader("Metros Perforados a lo Largo del Tiempo")
-plt.figure(figsize=(10, 5))
-plt.plot(days_array, min_meters_array, label=f'Mínimo Metros ({min_rate} m/día)')
-plt.plot(days_array, max_meters_array, label=f'Máximo Metros ({max_rate} m/día)')
-plt.xlabel('Días')
-plt.ylabel('Metros Perforados')
-plt.title('Metros Perforados a lo Largo del Tiempo')
-plt.legend()
-st.pyplot(plt)
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=days_array, y=min_meters_array, mode='lines', name=f'Mínimo Metros ({min_rate} m/día)'))
+fig.add_trace(go.Scatter(x=days_array, y=max_meters_array, mode='lines', name=f'Máximo Metros ({max_rate} m/día)'))
+fig.update_layout(title='Metros Perforados a lo Largo del Tiempo', xaxis_title='Días', yaxis_title='Metros Perforados')
+st.plotly_chart(fig)
 
 # Gráfica de Costos
 st.subheader("Costos a lo Largo del Tiempo")
-plt.figure(figsize=(10, 5))
-plt.plot(days_array, min_cost_array, label=f'Costo Mínimo (${min_rate * cost_per_meter} USD/día)')
-plt.plot(days_array, max_cost_array, label=f'Costo Máximo (${max_rate * cost_per_meter} USD/día)')
-plt.xlabel('Días')
-plt.ylabel('Costo en USD')
-plt.title('Costos a lo Largo del Tiempo')
-plt.legend()
-st.pyplot(plt)
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=days_array, y=min_cost_array, mode='lines', name=f'Costo Mínimo (${min_rate * cost_per_meter} USD/día)'))
+fig.add_trace(go.Scatter(x=days_array, y=max_cost_array, mode='lines', name=f'Costo Máximo (${max_rate * cost_per_meter} USD/día)'))
+fig.update_layout(title='Costos a lo Largo del Tiempo', xaxis_title='Días', yaxis_title='Costo en USD')
+st.plotly_chart(fig)
 
 # Gráfica de Metros Perforados vs. Costos
 st.subheader("Metros Perforados vs. Costos")
-plt.figure(figsize=(10, 5))
-sns.scatterplot(x=min_meters_array, y=min_cost_array, label=f'Costo Mínimo')
-sns.scatterplot(x=max_meters_array, y=max_cost_array, label=f'Costo Máximo')
-plt.xlabel('Metros Perforados')
-plt.ylabel('Costo en USD')
-plt.title('Metros Perforados vs. Costos')
-plt.legend()
-st.pyplot(plt)
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=min_meters_array, y=min_cost_array, mode='markers', name=f'Costo Mínimo'))
+fig.add_trace(go.Scatter(x=max_meters_array, y=max_cost_array, mode='markers', name=f'Costo Máximo'))
+fig.update_layout(title='Metros Perforados vs. Costos', xaxis_title='Metros Perforados', yaxis_title='Costo en USD')
+st.plotly_chart(fig)
 
 # Mapa de Calor de Costos vs. Metros Perforados en Función del Tiempo
 st.subheader("Mapa de Calor de Costos vs. Metros Perforados en Función del Tiempo")
 heatmap_data = np.vstack([min_cost_array, max_cost_array])
-sns.heatmap(heatmap_data, cmap="YlGnBu", xticklabels=days_array, yticklabels=["Costo Mínimo", "Costo Máximo"])
-plt.xlabel('Días')
-plt.ylabel('Costos')
-plt.title('Mapa de Calor de Costos vs. Metros Perforados en Función del Tiempo')
-st.pyplot(plt)
+fig = px.imshow(heatmap_data, labels=dict(x="Días", y="Método de Perforación", color="Costo en USD"),
+                x=days_array, y=["Costo Mínimo", "Costo Máximo"])
+fig.update_layout(title='Mapa de Calor de Costos vs. Metros Perforados en Función del Tiempo')
+st.plotly_chart(fig)
 
 # Gráfica de Superficie 3D de ambos métodos
 st.subheader("Gráfica de Superficie 3D de Costos de ambos Métodos")
-fig = plt.figure(figsize=(10, 5))
-ax = fig.add_subplot(111, projection='3d')
-
-X, Y = np.meshgrid(days_array, [1, 2])
+X, Y = np.meshgrid(days_array, ["DDH Diamantina", "Aire Reverso RC"])
 ddh_costs = np.array([ddh_min_cost, ddh_max_cost])
 rc_costs = np.array([rc_min_cost, rc_max_cost])
-
-ax.plot_surface(X, Y[0], ddh_costs, color='blue', alpha=0.5)
-ax.plot_surface(X, Y[1], rc_costs, color='green', alpha=0.5)
-
-ax.set_xlabel('Días')
-ax.set_ylabel('Método de Perforación (1=DDH Diamantina, 2=Aire Reverso RC)')
-ax.set_zlabel('Costos')
-ax.set_title('Gráfica de Superficie 3D de Costos de ambos Métodos')
-st.pyplot(fig)
+fig = go.Figure(data=[
+    go.Surface(z=ddh_costs, x=days_array, y=["DDH Diamantina"]*len(days_array), colorscale='Blues', opacity=0.5),
+    go.Surface(z=rc_costs, x=days_array, y=["Aire Reverso RC"]*len(days_array), colorscale='Greens', opacity=0.5)
+])
+fig.update_layout(scene=dict(
+    xaxis_title='Días',
+    yaxis_title='Método de Perforación',
+    zaxis_title='Costos'
+), title='Gráfica de Superficie 3D de Costos de ambos Métodos')
+st.plotly_chart(fig)
 
 # Gráfica de Interpolación
 st.subheader("Gráfica de Interpolación de Costos a lo Largo del Tiempo")
-plt.figure(figsize=(10, 5))
 interp_min_cost = np.interp(days_array, days_array, min_cost_array)
 interp_max_cost = np.interp(days_array, days_array, max_cost_array)
-plt.plot(days_array, interp_min_cost, label=f'Costo Mínimo Interpolado')
-plt.plot(days_array, interp_max_cost, label=f'Costo Máximo Interpolado')
-plt.xlabel('Días')
-plt.ylabel('Costo en USD')
-plt.title('Interpolación de Costos a lo Largo del Tiempo')
-plt.legend()
-st.pyplot(plt)
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=days_array, y=interp_min_cost, mode='lines', name=f'Costo Mínimo Interpolado'))
+fig.add_trace(go.Scatter(x=days_array, y=interp_max_cost, mode='lines', name=f'Costo Máximo Interpolado'))
+fig.update_layout(title='Interpolación de Costos a lo Largo del Tiempo', xaxis_title='Días', yaxis_title='Costo en USD')
+st.plotly_chart(fig)
 
 st.sidebar.header("Optimización de Trabajo")
 optimization_method = st.sidebar.selectbox("Método de Optimización", ["Minimizar Costo", "Maximizar Metros Perforados"])
@@ -139,4 +122,3 @@ else:
 st.sidebar.write(f"Para {optimization_method}:")
 st.sidebar.write(f"Rate: {optimal_rate} metros/día")
 st.sidebar.write(f"Costo Total: ${optimal_cost[-1]} USD")
-
