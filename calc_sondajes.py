@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from mpl_toolkits.mplot3d import Axes3D
 
 st.title("Calculadora y Visualizador de Costos de Sondajes Mineros")
 
@@ -79,6 +80,41 @@ plt.title('Metros Perforados vs. Costos')
 plt.legend()
 st.pyplot(plt)
 
+# Mapa de Calor de Costos vs. Metros Perforados en Función del Tiempo
+st.subheader("Mapa de Calor de Costos vs. Metros Perforados en Función del Tiempo")
+heatmap_data = np.vstack([min_cost_array, max_cost_array])
+sns.heatmap(heatmap_data, cmap="YlGnBu", xticklabels=days_array, yticklabels=["Costo Mínimo", "Costo Máximo"])
+plt.xlabel('Días')
+plt.ylabel('Costos')
+plt.title('Mapa de Calor de Costos vs. Metros Perforados en Función del Tiempo')
+st.pyplot(plt)
+
+# Gráfica de Superficie 3D
+st.subheader("Gráfica de Superficie 3D")
+fig = plt.figure(figsize=(10, 5))
+ax = fig.add_subplot(111, projection='3d')
+X, Y = np.meshgrid(days_array, [min_rate, max_rate])
+Z = np.array([min_cost_array, max_cost_array])
+ax.plot_surface(X, Y, Z, cmap='viridis')
+ax.set_xlabel('Días')
+ax.set_ylabel('Rate de Perforación')
+ax.set_zlabel('Costos')
+ax.set_title('Gráfica de Superficie 3D de Costos vs. Días y Rate de Perforación')
+st.pyplot(plt)
+
+# Gráfica de Interpolación
+st.subheader("Gráfica de Interpolación de Costos a lo Largo del Tiempo")
+plt.figure(figsize=(10, 5))
+interp_min_cost = np.interp(days_array, days_array, min_cost_array)
+interp_max_cost = np.interp(days_array, days_array, max_cost_array)
+plt.plot(days_array, interp_min_cost, label=f'Costo Mínimo Interpolado')
+plt.plot(days_array, interp_max_cost, label=f'Costo Máximo Interpolado')
+plt.xlabel('Días')
+plt.ylabel('Costo en USD')
+plt.title('Interpolación de Costos a lo Largo del Tiempo')
+plt.legend()
+st.pyplot(plt)
+
 st.sidebar.header("Optimización de Trabajo")
 optimization_method = st.sidebar.selectbox("Método de Optimización", ["Minimizar Costo", "Maximizar Metros Perforados"])
 
@@ -92,3 +128,4 @@ else:
 st.sidebar.write(f"Para {optimization_method}:")
 st.sidebar.write(f"Rate: {optimal_rate} metros/día")
 st.sidebar.write(f"Costo Total: ${optimal_cost[-1]} USD")
+
