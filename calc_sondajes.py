@@ -1,121 +1,94 @@
 import streamlit as st
+import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Título de la aplicación
-st.title("Optimización de Costos de Sondajes")
+st.title("Calculadora y Visualizador de Costos de Sondajes Mineros")
 
-# Parámetros de perforación (metros por día)
-PARAMETROS_PERFORACION = {
-    "Diamantina": {"min": 30, "max": 60, "costo_metro": 100},
-    "Aire Reverso": {"min": 60, "max": 120, "costo_metro": 80},
+# Datos iniciales
+methods = {
+    "DDH Diamantina": {"min_rate": 30, "max_rate": 60, "cost_per_meter": 100},
+    "Aire Reverso RC": {"min_rate": 60, "max_rate": 120, "cost_per_meter": 80},
 }
 
-# Casilla para ingresar metros requeridos
-metros_requeridos = st.number_input("Metros a Perforar:", min_value=10, value=100, step=10)
+# Selección del método de perforación
+st.sidebar.title("Parámetros de Sondaje")
+method = st.sidebar.selectbox("Seleccionar Método de Perforación", list(methods.keys()))
+days = st.sidebar.number_input("Número de Días de Operación", min_value=1, max_value=365, value=30)
 
-# Función para calcular datos de perforación
-def calcular_datos_perforacion(tipo_sondaje, metros_requeridos):
-    """
-    Calcula los costos mínimos y máximos, así como los días necesarios 
-    para alcanzar los metros requeridos.
+# Datos de perforación
+min_rate = methods[method]["min_rate"]
+max_rate = methods[method]["max_rate"]
+cost_per_meter = methods[method]["cost_per_meter"]
 
-    Args:
-        tipo_sondaje (str): "Diamantina" o "Aire Reverso".
-        metros_requeridos (int): Total de metros a perforar.
+# Cálculo de los costos y metros perforados
+total_min_meters = min_rate * days
+total_max_meters = max_rate * days
+total_min_cost = total_min_meters * cost_per_meter
+total_max_cost = total_max_meters * cost_per_meter
 
-    Returns:
-        tuple: Costo mínimo, costo máximo y días necesarios.
-    """
+# Resultados
+st.header("Resultados del Sondaje")
+st.write(f"Método de Perforación: {method}")
+st.write(f"Rango de Perforación: {min_rate} - {max_rate} metros diarios")
+st.write(f"Costo por Metro: ${cost_per_meter} USD")
+st.write(f"Total de Metros Perforados: {total_min_meters} - {total_max_meters} metros")
+st.write(f"Costo Total: ${total_min_cost} - ${total_max_cost} USD")
 
-    dias_min = int(np.ceil(metros_requeridos / PARAMETROS_PERFORACION[tipo_sondaje]["max"]))
-    dias_max = int(np.ceil(metros_requeridos / PARAMETROS_PERFORACION[tipo_sondaje]["min"]))
+# Generación de datos para visualización
+days_array = np.arange(1, days + 1)
+min_meters_array = min_rate * days_array
+max_meters_array = max_rate * days_array
+min_cost_array = min_meters_array * cost_per_meter
+max_cost_array = max_meters_array * cost_per_meter
 
-    dias = np.arange(dias_min, dias_max + 1)
-    costo_min = dias * PARAMETROS_PERFORACION[tipo_sondaje]["min"] * PARAMETROS_PERFORACION[tipo_sondaje]["costo_metro"]
-    costo_max = dias * PARAMETROS_PERFORACION[tipo_sondaje]["max"] * PARAMETROS_PERFORACION[tipo_sondaje]["costo_metro"]
+# Gráficas
+st.header("Visualización de Datos")
 
-    # Ajustar costos para que no excedan el costo de los metros requeridos exactos
-    costo_min = np.where(costo_min > metros_requeridos * PARAMETROS_PERFORACION[tipo_sondaje]["costo_metro"],
-                         metros_requeridos * PARAMETROS_PERFORACION[tipo_sondaje]["costo_metro"], 
-                         costo_min)
-    costo_max = np.where(costo_max > metros_requeridos * PARAMETROS_PERFORACION[tipo_sondaje]["costo_metro"],
-                         metros_requeridos * PARAMETROS_PERFORACION[tipo_sondaje]["costo_metro"],
-                         costo_max)
-    
-    return costo_min, costo_max, dias
+# Gráfica de Metros Perforados
+st.subheader("Metros Perforados a lo Largo del Tiempo")
+plt.figure(figsize=(10, 5))
+plt.plot(days_array, min_meters_array, label=f'Mínimo Metros ({min_rate} m/día)')
+plt.plot(days_array, max_meters_array, label=f'Máximo Metros ({max_rate} m/día)')
+plt.xlabel('Días')
+plt.ylabel('Metros Perforados')
+plt.title('Metros Perforados a lo Largo del Tiempo')
+plt.legend()
+st.pyplot(plt)
 
-# --- Gráfico 3D ---
-def graficar_costos_3d():
-    """Genera y muestra el gráfico 3D de comparación de costos."""
-    fig = go.Figure()
+# Gráfica de Costos
+st.subheader("Costos a lo Largo del Tiempo")
+plt.figure(figsize=(10, 5))
+plt.plot(days_array, min_cost_array, label=f'Costo Mínimo (${min_rate * cost_per_meter} USD/día)')
+plt.plot(days_array, max_cost_array, label=f'Costo Máximo (${max_rate * cost_per_meter} USD/día)')
+plt.xlabel('Días')
+plt.ylabel('Costo en USD')
+plt.title('Costos a lo Largo del Tiempo')
+plt.legend()
+st.pyplot(plt)
 
-    for tipo in ["Diamantina", "Aire Reverso"]:
-        costo_min, costo_max, dias = calcular_datos_perforacion(tipo, metros_requeridos)
-        for i in range(len(dias)):
-            fig.add_trace(go.Scatter3d(
-                x=np.array([dias[i], dias[i]]), 
-                y=np.array([metros_requeridos, metros_requeridos]), 
-                z=[costo_min[i], costo_max[i]],
-                mode='lines',
-                line=dict(color='blue' if tipo == "Diamantina" else 'red'),
-                showlegend=False 
-            ))
+# Gráfica de Metros Perforados vs. Costos
+st.subheader("Metros Perforados vs. Costos")
+plt.figure(figsize=(10, 5))
+sns.scatterplot(x=min_meters_array, y=min_cost_array, label=f'Costo Mínimo')
+sns.scatterplot(x=max_meters_array, y=max_cost_array, label=f'Costo Máximo')
+plt.xlabel('Metros Perforados')
+plt.ylabel('Costo en USD')
+plt.title('Metros Perforados vs. Costos')
+plt.legend()
+st.pyplot(plt)
 
-    fig.update_layout(
-        title="Comparación de Costos de Sondaje (3D)",
-        scene=dict(
-            xaxis_title="Tiempo (días)",
-            yaxis_title="Metros Perforados",
-            zaxis_title="Costo Total ($)"
-        ),
-        autosize=False,
-        width=800,
-        height=600,
-        margin=dict(l=65, r=50, b=65, t=90)
-    )
-    st.plotly_chart(fig)
+st.sidebar.header("Optimización de Trabajo")
+optimization_method = st.sidebar.selectbox("Método de Optimización", ["Minimizar Costo", "Maximizar Metros Perforados"])
 
-# --- Gráfico de contorno ---
-def graficar_contorno():
-    """Genera y muestra el gráfico de contorno de comparación de costos."""
-    fig = go.Figure()
+if optimization_method == "Minimizar Costo":
+    optimal_rate = min_rate
+    optimal_cost = min_cost_array
+else:
+    optimal_rate = max_rate
+    optimal_cost = max_cost_array
 
-    for tipo in ["Diamantina", "Aire Reverso"]:
-        costo_min, costo_max, dias = calcular_datos_perforacion(tipo, metros_requeridos)
-        fig.add_trace(go.Scatter(
-            x=dias, 
-            y=costo_min, 
-            mode='lines', 
-            line=dict(color='blue' if tipo == "Diamantina" else 'red'), 
-            name=f'{tipo} (Min)'
-        ))
-        fig.add_trace(go.Scatter(
-            x=dias, 
-            y=costo_max, 
-            mode='lines', 
-            line=dict(color='blue' if tipo == "Diamantina" else 'red', dash='dash'), 
-            name=f'{tipo} (Max)'
-        ))
-
-    fig.update_layout(
-        title='Rango de Costos en Función del Tiempo',
-        xaxis_title='Tiempo (días)',
-        yaxis_title='Costo Total ($)',
-        legend_title='Método'
-    )
-    st.plotly_chart(fig)
-
-# --- Mostrar gráficos ---
-graficar_costos_3d()
-graficar_contorno()
-
-# --- Explicación ---
-st.write("""
-**Interpretación:**
-
-- **Gráfico 3D:** Muestra la relación entre el tiempo, los metros perforados (fijos en este caso) 
-  y el rango de costos para ambos métodos.
-- **Gráfico de contorno:**  Visualiza el rango de costos mínimo y máximo para cada método en 
-  función del tiempo necesario para completar la perforación.
-""")
+st.sidebar.write(f"Para {optimization_method}:")
+st.sidebar.write(f"Rate: {optimal_rate} metros/día")
+st.sidebar.write(f"Costo Total: ${optimal_cost[-1]} USD")
