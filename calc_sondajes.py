@@ -100,15 +100,15 @@ st.subheader("Gráfica de Superficie 3D de Costos de ambos Métodos")
 fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
 
-X, Y = np.meshgrid(days_array, ["DDH Diamantina", "Aire Reverso RC"])
+X, Y = np.meshgrid(days_array, [1, 2])
 ddh_costs = np.array([ddh_min_cost, ddh_max_cost])
 rc_costs = np.array([rc_min_cost, rc_max_cost])
 
-ax.plot_surface(X, np.repeat(["DDH Diamantina"], days), ddh_costs, color='blue', alpha=0.5)
-ax.plot_surface(X, np.repeat(["Aire Reverso RC"], days), rc_costs, color='green', alpha=0.5)
+ax.plot_surface(X, Y[0], ddh_costs, color='blue', alpha=0.5)
+ax.plot_surface(X, Y[1], rc_costs, color='green', alpha=0.5)
 
 ax.set_xlabel('Días')
-ax.set_ylabel('Método de Perforación')
+ax.set_ylabel('Método de Perforación (1=DDH Diamantina, 2=Aire Reverso RC)')
 ax.set_zlabel('Costos')
 ax.set_title('Gráfica de Superficie 3D de Costos de ambos Métodos')
 st.pyplot(fig)
@@ -139,5 +139,4 @@ else:
 st.sidebar.write(f"Para {optimization_method}:")
 st.sidebar.write(f"Rate: {optimal_rate} metros/día")
 st.sidebar.write(f"Costo Total: ${optimal_cost[-1]} USD")
-
 
