@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Título de la aplicación
-st.title("Generador de Tabla de Flujo de Caja del Proyecto Marimaca")
+st.title("Generador de Tabla de Flujo de Caja Proyecto)
 
 # Crear un formulario para ingresar datos
 with st.form("project_form"):
