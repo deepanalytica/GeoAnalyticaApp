@@ -44,6 +44,12 @@ max_meters_array = max_rate * days_array
 min_cost_array = min_meters_array * cost_per_meter
 max_cost_array = max_meters_array * cost_per_meter
 
+# Generación de datos para ambos métodos
+ddh_min_cost = 30 * days_array * 100
+ddh_max_cost = 60 * days_array * 100
+rc_min_cost = 60 * days_array * 80
+rc_max_cost = 120 * days_array * 80
+
 # Gráficas
 st.header("Visualización de Datos")
 
@@ -89,18 +95,24 @@ plt.ylabel('Costos')
 plt.title('Mapa de Calor de Costos vs. Metros Perforados en Función del Tiempo')
 st.pyplot(plt)
 
-# Gráfica de Superficie 3D
-st.subheader("Gráfica de Superficie 3D")
+# Gráfica de Superficie 3D de ambos métodos
+st.subheader("Gráfica de Superficie 3D de Costos de ambos Métodos")
 fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
-X, Y = np.meshgrid(days_array, [min_rate, max_rate])
-Z = np.array([min_cost_array, max_cost_array])
-ax.plot_surface(X, Y, Z, cmap='viridis')
+
+X, Y = np.meshgrid(days_array, ["DDH Diamantina", "Aire Reverso RC"])
+Z1 = np.array([ddh_min_cost, ddh_max_cost])
+Z2 = np.array([rc_min_cost, rc_max_cost])
+
+ax.plot_surface(days_array, ddh_min_cost, ddh_max_cost, color='blue', alpha=0.5, label="DDH Diamantina")
+ax.plot_surface(days_array, rc_min_cost, rc_max_cost, color='green', alpha=0.5, label="Aire Reverso RC")
+
 ax.set_xlabel('Días')
-ax.set_ylabel('Rate de Perforación')
+ax.set_ylabel('Método de Perforación')
 ax.set_zlabel('Costos')
-ax.set_title('Gráfica de Superficie 3D de Costos vs. Días y Rate de Perforación')
-st.pyplot(plt)
+ax.set_title('Gráfica de Superficie 3D de Costos de ambos Métodos')
+plt.legend()
+st.pyplot(fig)
 
 # Gráfica de Interpolación
 st.subheader("Gráfica de Interpolación de Costos a lo Largo del Tiempo")
