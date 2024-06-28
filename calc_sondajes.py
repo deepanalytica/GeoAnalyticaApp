@@ -1,4 +1,6 @@
 import streamlit as st
+import numpy as np
+import plotly.graph_objects as go
 
 # Título de la aplicación
 st.title("Optimización de Costos de Sondajes")
@@ -15,40 +17,56 @@ def calcular_costos(tipo_sondaje, metros):
   Returns:
       float: Costo total del sondaje
   """
-  if tipo_sondaje == "Diamantina":
-    costo_metro = 100
-  elif tipo_sondaje == "Aire Reverso":
-    costo_metro = 80
-  else:
-    return "Tipo de sondaje inválido"
+  costo_metro = {"Diamantina": 100, "Aire Reverso": 80}
+  return costo_metro.get(tipo_sondaje, "Tipo de sondaje inválido") * metros
 
-  costo_total = costo_metro * metros
-  return costo_total
+# Función para crear el gráfico
+def graficar_costos(costo_diamantina, costo_aire_reverso, metros_rango):
+  """Crea un gráfico interactivo para comparar costos."""
+
+  fig = go.Figure()
+  fig.add_trace(go.Scatter(x=metros_rango, y=costo_diamantina, 
+                            mode='lines', name='Diamantina', 
+                            line=dict(color='royalblue')))
+  fig.add_trace(go.Scatter(x=metros_rango, y=costo_aire_reverso,
+                            mode='lines', name='Aire Reverso',
+                            line=dict(color='firebrick')))
+
+  fig.update_layout(title="Comparación de Costos de Sondaje",
+                    xaxis_title="Metros a Perforar",
+                    yaxis_title="Costo total ($)",
+                    legend_title="Tipo de Sondaje",
+                    hovermode="x unified")
+  st.plotly_chart(fig)
 
 # Barra lateral para ingresar los datos
 st.sidebar.header("Parámetros de Sondaje")
-tipo_sondaje = st.sidebar.selectbox("Tipo de Sondaje", ["Diamantina", "Aire Reverso"])
-metros = st.sidebar.number_input("Metros a Perforar", min_value=0.0, step=1.0)
 
-# Calcular los costos y el tiempo estimado
-costo_total = calcular_costos(tipo_sondaje, metros)
+# Usar selectbox con opciones predefinidas
+tipo_sondaje = st.sidebar.selectbox("Tipo de Sondaje", ["Diamantina", "Aire Reverso"])
+
+# Usar slider para ingresar metros con rango y paso específico
+metros = st.sidebar.slider("Metros a Perforar", min_value=10, max_value=500, value=50, step=10)
+
+# Calcular los costos para un rango de metros
+metros_rango = np.arange(10, metros + 10, 10)
+costo_diamantina = [calcular_costos("Diamantina", m) for m in metros_rango]
+costo_aire_reverso = [calcular_costos("Aire Reverso", m) for m in metros_rango]
 
 # Mostrar los resultados
 st.header("Resultados")
-st.write(f"Costo total del sondaje: **${costo_total:.2f}**")
+st.write(f"Costo total del sondaje: **${calcular_costos(tipo_sondaje, metros):.2f}**")
 
-# Mostrar información adicional sobre el rango de avance diario
-if tipo_sondaje == "Diamantina":
-    st.write("El avance diario estimado para Diamantina es de 30 a 60 metros.")
-elif tipo_sondaje == "Aire Reverso":
-    st.write("El avance diario estimado para Aire Reverso es de 60 a 120 metros.")
+# Mostrar el gráfico interactivo
+graficar_costos(costo_diamantina, costo_aire_reverso, metros_rango)
 
-# Sección para sugerencias de optimización
-st.header("Sugerencias de Optimización")
-st.markdown("""
-* **Comparar precios de proveedores:** Busca diferentes proveedores de servicios de sondaje para obtener las mejores tarifas.
-* **Planificar la ubicación de los sondajes:** Una buena planificación de la ubicación de los sondajes puede reducir la cantidad de metros necesarios.
-* **Usar la técnica de sondaje adecuada:** Elegir la técnica de sondaje más eficiente para el tipo de suelo y la información que se busca puede reducir los costos.
-* **Monitorear el avance del proyecto:** Un seguimiento constante del avance del proyecto permite identificar posibles retrasos y ajustar el presupuesto en consecuencia.
-* **Considerar alternativas:** Dependiendo del objetivo, existen alternativas a los sondajes tradicionales, como la geofísica, que pueden resultar más económicas.
-""")
+# Sección para análisis de optimización (simplificada)
+st.header("Análisis de Costos")
+
+st.write("En este ejemplo simple, no hay puntos de inflexión o curvas de optimización complejas, "
+         "ya que los costos aumentan linealmente con la cantidad de metros perforados. "
+         "Sin embargo, en escenarios reales, factores como el costo de movilización, "
+         "el alquiler de equipos y las economías de escala pueden influir en la optimización.")
+
+st.write("**Recomendación:** Explora diferentes escenarios y rangos de metros perforados para "
+         "identificar posibles puntos de optimización en tu proyecto específico.")
