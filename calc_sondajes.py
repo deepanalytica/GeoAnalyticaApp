@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 # Título de la aplicación
-st.title("Optimización de Costos de Sondajes (3D)")
+st.title("Optimización de Costos de Sondajes")
 
 # Parámetros de perforación (metros por día)
 PARAMETROS_PERFORACION = {
@@ -12,7 +12,7 @@ PARAMETROS_PERFORACION = {
     "Aire Reverso": {"min": 60, "max": 120, "costo_metro": 80},
 }
 
-# Rango de metros y días a simular (global para consistencia)
+# Rango de metros y días a simular 
 metros_rango = np.arange(10, 510, 50)
 dias_rango = np.arange(1, 21, 1)
 metros_malla, dias_malla = np.meshgrid(metros_rango, dias_rango)
@@ -23,7 +23,7 @@ def calcular_datos_perforacion(tipo_sondaje):
                               PARAMETROS_PERFORACION[tipo_sondaje]["max"],
                               size=metros_malla.shape)
     metros_perforados = dias_malla * tasa
-    metros_perforados = np.where(metros_perforados <= metros_rango[-1], metros_perforados, metros_rango[-1])
+    metros_perforados = np.clip(metros_perforados, metros_rango[0], metros_rango[-1])  # Asegurar que los metros estén dentro del rango
     costo = metros_perforados * PARAMETROS_PERFORACION[tipo_sondaje]["costo_metro"]
     return costo, metros_perforados
 
@@ -51,7 +51,8 @@ def graficar_costos_3d():
                                  yaxis_title="Metros Perforados",
                                  zaxis_title="Costo Total ($)"),
                       autosize=False,
-                      width=800, height=600)
+                      width=800, height=600,
+                      margin=dict(l=65, r=50, b=65, t=90))
     st.plotly_chart(fig)
 
 # Función para crear gráfico de contorno
@@ -80,7 +81,6 @@ def graficar_contorno():
                       yaxis_title='Metros Perforados',
                       legend_title='Método')
     st.plotly_chart(fig)
-
 
 # Mostrar el gráfico 3D
 graficar_costos_3d()
