@@ -15,71 +15,14 @@ DESVIACION_ESTANDAR = {"Cu": 0.4, "Au": 0.1, "Mo": 0.005}
 datos_sondajes = {
     "Sondaje": [f"DH-{i+1}" for i in range(NUM_SONDAJES)],
     "Este (m)": [
-        0,
-        20,
-        40,
-        60,
-        80,
-        10,
-        30,
-        50,
-        70,
-        90,
-        0,
-        20,
-        40,
-        60,
-        80,
-        10,
-        30,
-        50,
-        70,
-        90,
+        0, 20, 40, 60, 80, 10, 30, 50, 70, 90, 0, 20, 40, 60, 80, 10, 30, 50, 70, 90,
     ],
     "Norte (m)": [
-        0,
-        10,
-        20,
-        30,
-        40,
-        10,
-        20,
-        30,
-        40,
-        50,
-        -10,
-        -10,
-        -10,
-        -10,
-        -10,
-        -20,
-        -20,
-        -20,
-        -20,
-        -20,
+        0, 10, 20, 30, 40, 10, 20, 30, 40, 50, -10, -10, -10, -10, -10, -20, -20, -20, -20, -20,
     ],
     "Elevación (m)": [1000 + i - 5 for i in range(NUM_SONDAJES)],
     "Azimut (°)": [
-        0,
-        45,
-        90,
-        135,
-        180,
-        225,
-        270,
-        315,
-        0,
-        45,
-        0,
-        45,
-        90,
-        135,
-        180,
-        225,
-        270,
-        315,
-        0,
-        45,
+        0, 45, 90, 135, 180, 225, 270, 315, 0, 45, 0, 45, 90, 135, 180, 225, 270, 315, 0, 45,
     ],
     "Inclinación (°)": [-60, -55, -50, -45, -60, -55, -50, -45, -60, -55] * 2,
     "Profundidad (m)": [PROFUNDIDAD_SONDAJE] * NUM_SONDAJES,
@@ -87,9 +30,7 @@ datos_sondajes = {
 df_sondajes = pd.DataFrame(datos_sondajes)
 
 # --- Funciones ---
-def generar_leyes(
-    profundidad, ley_media, desviacion_estandar, factor_zonificacion=1
-):
+def generar_leyes(profundidad, ley_media, desviacion_estandar, factor_zonificacion=1):
     """Genera leyes con tendencia, mayor variabilidad y zonificación."""
     tendencia = np.random.normal(0, 0.005) * profundidad
     return np.maximum(
@@ -106,15 +47,13 @@ def generar_datos_sondaje(sondaje_data):
     """Genera datos de puntos de muestra con leyes y alteración."""
     datos = []
     for j in range(sondaje_data["Profundidad (m)"]):
-        x = sondaje_data[
-            "Este (m)"
-        ] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.cos(
-            np.deg2rad(sondaje_data["Azimut (°)"])
+        x = sondaje_data["Este (m)"] - j * np.sin(
+            np.deg2rad(sondaje_data["Inclinación (°)"])
+        ) * np.cos(np.deg2rad(sondaje_data["Azimut (°)"])
         )
-        y = sondaje_data[
-            "Norte (m)"
-        ] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.sin(
-            np.deg2rad(sondaje_data["Azimut (°)"])
+        y = sondaje_data["Norte (m)"] - j * np.sin(
+            np.deg2rad(sondaje_data["Inclinación (°)"])
+        ) * np.sin(np.deg2rad(sondaje_data["Azimut (°)"])
         )
         z = sondaje_data["Elevación (m)"] - j * np.cos(
             np.deg2rad(sondaje_data["Inclinación (°)"])
@@ -122,21 +61,26 @@ def generar_datos_sondaje(sondaje_data):
 
         # Zonificación simple (distancia al centro)
         dist_centro = np.sqrt(x**2 + y**2)
-        factor_cu = max(
-            0.1, 1 - (dist_centro / 50)
-        )  # Mayor ley de Cu hacia el centro
-        factor_au = max(
-            0.1, (dist_centro / 70)
-        )  # Mayor ley de Au en la periferia
+        factor_cu = max(0.1, 1 - (dist_centro / 50))  # Mayor ley de Cu hacia el centro
+        factor_au = max(0.1, (dist_centro / 70))  # Mayor ley de Au en la periferia
 
-        # Simular alteraciones (probabilidad según la profundidad)
-        prob_silice = 1 / (1 + np.exp(-(z - 970) / 5))  # Sílice en profundidad
-        prob_potasica = 1 / (1 + np.exp(-(z - 985) / 3))  # Potásica más arriba
+        # Simular alteraciones (probabilidad según la profundidad y distancia)
+        prob_silice = 1 / (1 + np.exp(-(z - 970) / 5)) * (
+            1 - dist_centro / 100
+        )  # Sílice en profundidad y centro
+        prob_potasica = 1 / (1 + np.exp(-(z - 985) / 3)) * (
+            dist_centro / 80
+        )  # Potásica más arriba y en la periferia
+        prob_argilica = 1 / (1 + np.exp((z - 990) / 10)) * (
+            1 - dist_centro / 120
+        )  # Argílica superficial y en el centro
         alteracion = (
             "Sílice"
             if np.random.rand() < prob_silice
             else "Potásica"
             if np.random.rand() < prob_potasica
+            else "Argílica"
+            if np.random.rand() < prob_argilica
             else "Sin alteración"
         )
 
@@ -151,10 +95,7 @@ def generar_datos_sondaje(sondaje_data):
                     j + 1, LEY_MEDIA["Cu"], DESVIACION_ESTANDAR["Cu"], factor_cu
                 )[j],
                 "Au (g/t)": generar_leyes(
-                    j + 1,
-                    LEY_MEDIA["Au"],
-                    DESVIACION_ESTANDAR["Au"],
-                    factor_au,
+                    j + 1, LEY_MEDIA["Au"], DESVIACION_ESTANDAR["Au"], factor_au
                 )[j],
                 "Mo (%)": generar_leyes(
                     j + 1, LEY_MEDIA["Mo"], DESVIACION_ESTANDAR["Mo"]
@@ -164,16 +105,13 @@ def generar_datos_sondaje(sondaje_data):
         )
     return datos
 
-
 # --- Generar datos (una sola vez) ---
 @st.cache_data
 def cargar_datos():
     """Genera y almacena en caché los datos de los sondajes."""
     datos_sondajes_3d = []
     for i in range(len(df_sondajes)):
-        datos_sondajes_3d.extend(
-            generar_datos_sondaje(df_sondajes.iloc[i])
-        )
+        datos_sondajes_3d.extend(generar_datos_sondaje(df_sondajes.iloc[i]))
     return pd.DataFrame(datos_sondajes_3d)
 
 
@@ -185,7 +123,9 @@ st.sidebar.title("Visualización de Sondajes 3D")
 # --- Opciones de visualización ---
 st.sidebar.header("Opciones de Visualización")
 elementos_a_visualizar = st.sidebar.multiselect(
-    "Seleccionar Elementos:", ["Cu (%)", "Au (g/t)", "Mo (%)"], default=["Cu (%)"]
+    "Seleccionar Elementos:",
+    ["Cu (%)", "Au (g/t)", "Mo (%)"],
+    default=["Cu (%)"],
 )
 mostrar_volumen = st.sidebar.checkbox("Mostrar Volumen 3D", value=False)
 mostrar_alteracion = st.sidebar.checkbox("Mostrar Alteración", value=True)
@@ -193,10 +133,7 @@ mostrar_alteracion = st.sidebar.checkbox("Mostrar Alteración", value=True)
 # --- Filtros ---
 st.sidebar.header("Filtros")
 profundidad_min = st.sidebar.slider(
-    "Profundidad Mínima (m)",
-    min_value=0,
-    max_value=PROFUNDIDAD_SONDAJE,
-    value=0,
+    "Profundidad Mínima (m)", min_value=0, max_value=PROFUNDIDAD_SONDAJE, value=0
 )
 profundidad_max = st.sidebar.slider(
     "Profundidad Máxima (m)",
@@ -208,6 +145,11 @@ df_filtrado = df_sondajes_3d[
     (df_sondajes_3d["Profundidad"] >= profundidad_min)
     & (df_sondajes_3d["Profundidad"] <= profundidad_max)
 ]
+
+# --- Selección de Ley para Visualización ---
+ley_a_visualizar = st.selectbox(
+    "Seleccionar Ley Mineral:", ["Cu (%)", "Au (g/t)", "Mo (%)"]
+)
 
 # --- Visualización ---
 st.title("Visualización 3D de Sondajes - Pórfido Cu-Au-Mo")
@@ -229,18 +171,16 @@ with col1:
                 z=df_sondaje["Z"],
                 mode="lines+markers",
                 name=sondaje,
-                marker=dict(
-                    size=4,
-                    color="grey",  # Color base de los sondajes
-                    line=dict(width=2),
-                ),
-                customdata=df_sondaje.index,  # Agregar índices de filas como customdata
+                marker=dict(size=4, color="grey", line=dict(width=2)),
+                customdata=df_sondaje.index,
             )
         )
 
     # --- Alteración en el gráfico 3D ---
     if mostrar_alteracion:
-        for alteracion_tipo in ["Sílice", "Potásica"]:
+        alteraciones = ["Sílice", "Potásica", "Argílica"]
+        colores_alteraciones = ["blue", "orange", "green"]
+        for i, alteracion_tipo in enumerate(alteraciones):
             df_alteracion = df_filtrado[
                 df_filtrado["Alteración"] == alteracion_tipo
             ]
@@ -254,9 +194,7 @@ with col1:
                     marker=dict(
                         size=3,
                         symbol="diamond-open",
-                        color="orange"
-                        if alteracion_tipo == "Potásica"
-                        else "blue",
+                        color=colores_alteraciones[i],
                     ),
                 )
             )
@@ -264,7 +202,7 @@ with col1:
     # --- Volumen 3D ---
     if mostrar_volumen:
         # Crear una malla 3D para la interpolación
-        num_puntos_malla = 30  # Ajustar para la resolución del volumen
+        num_puntos_malla = 25  # Ajustar para la resolución del volumen
         xi = np.linspace(
             df_filtrado["X"].min(), df_filtrado["X"].max(), num_puntos_malla
         )
@@ -284,8 +222,8 @@ with col1:
                 df_filtrado["Y"],
                 df_filtrado["Z"],
                 df_filtrado[elemento],
-                function="linear",  # Puedes probar con 'multiquadric', 'gaussian', etc.
-                smooth=0.5,  # Ajustar para suavizar la interpolación
+                function="multiquadric",  # Puedes probar con 'linear', 'gaussian', etc.
+                smooth=0.8,  # Ajustar para suavizar la interpolación
             )
             valores_elemento = rbf(xi, yi, zi)
 
@@ -299,7 +237,7 @@ with col1:
                     isomin=df_filtrado[elemento].min(),
                     isomax=df_filtrado[elemento].max(),
                     opacity=0.15,  # Ajustar la transparencia
-                    surface_count=15,  # Ajustar la resolución
+                    surface_count=20,  # Ajustar la resolución
                     colorscale="Hot"
                     if elemento == "Au (g/t)"
                     else "Viridis"
@@ -325,8 +263,8 @@ with col1:
         ),
         width=800,
         height=600,
-        margin=dict(l=65, r=150, b=65, t=90),  # Más espacio para las barras de color
-        clickmode="event+select",  # Habilitar la selección de puntos
+        margin=dict(l=65, r=150, b=65, t=90),
+        clickmode="event+select",
     )
 
     st.plotly_chart(fig)
@@ -380,7 +318,7 @@ fig_seccion = go.Figure(
         mode="markers",
         marker=dict(
             size=6,
-            color=df_filtrado[ley_a_visualizar],
+            color=df_filtrado[ley_a_visualizar],  # Usar la variable global
             colorscale="Viridis",
             colorbar=dict(title=ley_a_visualizar),
             cmin=df_filtrado[ley_a_visualizar].min(),
@@ -395,14 +333,30 @@ fig_seccion.update_layout(
 )
 st.plotly_chart(fig_seccion)
 
-# --- Mapa de calor 2D ---
-st.header("Mapa de Calor 2D")
-fig_heatmap = px.density_heatmap(
-    df_filtrado,
-    x="X",
-    y="Y",
-    z=ley_a_visualizar,
-    title="Mapa de Calor de Leyes",
-    labels={"X": "Este (m)", "Y": "Norte (m)"},
+# --- Mapa de calor 3D ---
+st.header("Mapa de Calor 3D")
+fig_heatmap_3d = go.Figure(
+    data=go.Scatter3d(
+        x=df_filtrado["X"],
+        y=df_filtrado["Y"],
+        z=df_filtrado["Z"],
+        mode="markers",
+        marker=dict(
+            size=5,
+            color=df_filtrado[ley_a_visualizar],
+            colorscale="Hot",  # Puedes cambiar la escala de color
+            colorbar=dict(title=ley_a_visualizar),
+        ),
+    )
 )
-st.plotly_chart(fig_heatmap)
+fig_heatmap_3d.update_layout(
+    scene=dict(
+        xaxis_title="Este (m)",
+        yaxis_title="Norte (m)",
+        zaxis_title="Elevación (m)",
+        aspectmode="cube",  # Mantener la relación de aspecto para una mejor visualización
+    ),
+    width=800,
+    height=600,
+)
+st.plotly_chart(fig_heatmap_3d)
