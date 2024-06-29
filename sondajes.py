@@ -5,38 +5,105 @@ import plotly.graph_objects as go
 from scipy.interpolate import griddata
 
 # --- Parámetros de la Simulación (Ajustables) ---
-NUM_SONDAJES = 10
-PROFUNDIDAD_SONDAJE = 150  # Metros
-LEY_MEDIA = {"Cu": 1.0, "Au": 0.1}  # %Cu, g/t Au
-DESVIACION_ESTANDAR = {"Cu": 0.5, "Au": 0.05}
+NUM_SONDAJES = 20
+PROFUNDIDAD_SONDAJE = 200  # Metros
+LEY_MEDIA = {"Cu": 0.7, "Au": 0.2, "Mo": 0.01}  # %Cu, g/t Au, % Mo
+DESVIACION_ESTANDAR = {"Cu": 0.4, "Au": 0.1, "Mo": 0.005}
 
 # --- Datos de los Sondajes (Ajustables) ---
-# Los sondajes se distribuyen en un área más amplia
+# Distribución más dispersa y realista de los sondajes
 datos_sondajes = {
     "Sondaje": [f"DH-{i+1}" for i in range(NUM_SONDAJES)],
-    "Este (m)": [0, 20, 40, 60, 80, 10, 30, 50, 70, 90],
-    "Norte (m)": [0, 10, 20, 30, 40, 10, 20, 30, 40, 50],
-    "Elevación (m)": [1000, 1002, 998, 1001, 999, 998, 1000, 1003, 1001, 999],
-    "Azimut (°)": [0, 45, 90, 135, 180, 225, 270, 315, 0, 45],
-    "Inclinación (°)": [-60, -60, -60, -45, -45, -45, -60, -60, -60, -45],
+    "Este (m)": [
+        0,
+        20,
+        40,
+        60,
+        80,
+        10,
+        30,
+        50,
+        70,
+        90,
+        0,
+        20,
+        40,
+        60,
+        80,
+        10,
+        30,
+        50,
+        70,
+        90,
+    ],
+    "Norte (m)": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        10,
+        20,
+        30,
+        40,
+        50,
+        -10,
+        -10,
+        -10,
+        -10,
+        -10,
+        -20,
+        -20,
+        -20,
+        -20,
+        -20,
+    ],
+    "Elevación (m)": [1000 + i - 5 for i in range(NUM_SONDAJES)],
+    "Azimut (°)": [
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        0,
+        45,
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        0,
+        45,
+    ],
+    "Inclinación (°)": [-60, -55, -50, -45, -60, -55, -50, -45, -60, -55] * 2,
     "Profundidad (m)": [PROFUNDIDAD_SONDAJE] * NUM_SONDAJES,
 }
 df_sondajes = pd.DataFrame(datos_sondajes)
 
 # --- Funciones ---
-def generar_leyes(profundidad, ley_media, desviacion_estandar):
-    """Genera leyes con una ligera tendencia y mayor variabilidad."""
+def generar_leyes(
+    profundidad, ley_media, desviacion_estandar, factor_zonificacion=1
+):
+    """Genera leyes con tendencia, mayor variabilidad y zonificación."""
     tendencia = np.random.normal(0, 0.005) * profundidad  # Mayor tendencia
     return np.maximum(
         0,
-        np.random.normal(ley_media - tendencia, desviacion_estandar, profundidad),
+        np.random.normal(
+            (ley_media - tendencia) * factor_zonificacion,
+            desviacion_estandar,
+            profundidad,
+        ),
     )
 
 
 def generar_datos_sondaje(sondaje_data):
-    """Genera datos de puntos de muestra a lo largo de un sondaje,
-    incluyendo una alteración simulada.
-    """
+    """Genera datos de puntos de muestra con leyes y alteración."""
     datos = []
     for j in range(sondaje_data["Profundidad (m)"]):
         x = sondaje_data[
@@ -52,8 +119,27 @@ def generar_datos_sondaje(sondaje_data):
         z = sondaje_data["Elevación (m)"] - j * np.cos(
             np.deg2rad(sondaje_data["Inclinación (°)"])
         )
-        # Simular alteración (1: Sílice, 0: Sin alteración)
-        alteracion = 1 if np.random.rand() < 0.3 else 0  
+
+        # Zonificación simple (distancia al centro)
+        dist_centro = np.sqrt(x**2 + y**2)
+        factor_cu = max(
+            0.1, 1 - (dist_centro / 50)
+        )  # Mayor ley de Cu hacia el centro
+        factor_au = max(
+            0.1, (dist_centro / 70)
+        )  # Mayor ley de Au en la periferia
+
+        # Simular alteraciones (probabilidad según la profundidad)
+        prob_silice = 1 / (1 + np.exp(-(z - 970) / 5))  # Sílice en profundidad
+        prob_potasica = 1 / (1 + np.exp(-(z - 985) / 3))  # Potásica más arriba
+        alteracion = (
+            "Sílice"
+            if np.random.rand() < prob_silice
+            else "Potásica"
+            if np.random.rand() < prob_potasica
+            else "Sin alteración"
+        )
+
         datos.append(
             {
                 "Sondaje": sondaje_data["Sondaje"],
@@ -62,10 +148,16 @@ def generar_datos_sondaje(sondaje_data):
                 "Y": y,
                 "Z": z,
                 "Cu (%)": generar_leyes(
-                    j + 1, LEY_MEDIA["Cu"], DESVIACION_ESTANDAR["Cu"]
+                    j + 1, LEY_MEDIA["Cu"], DESVIACION_ESTANDAR["Cu"], factor_cu
                 )[j],
                 "Au (g/t)": generar_leyes(
-                    j + 1, LEY_MEDIA["Au"], DESVIACION_ESTANDAR["Au"]
+                    j + 1,
+                    LEY_MEDIA["Au"],
+                    DESVIACION_ESTANDAR["Au"],
+                    factor_au,
+                )[j],
+                "Mo (%)": generar_leyes(
+                    j + 1, LEY_MEDIA["Mo"], DESVIACION_ESTANDAR["Mo"]
                 )[j],
                 "Alteración": alteracion,
             }
@@ -82,14 +174,14 @@ df_sondajes_3d = pd.DataFrame(datos_sondajes_3d)
 # --- Interfaz de usuario de Streamlit ---
 st.sidebar.title("Parámetros de Visualización")
 ley_a_visualizar = st.sidebar.selectbox(
-    "Seleccionar Ley Mineral:", ["Cu (%)", "Au (g/t)"]
+    "Seleccionar Ley Mineral:", ["Cu (%)", "Au (g/t)", "Mo (%)"]
 )
 
 mostrar_volumen = st.sidebar.checkbox("Mostrar Volumen 3D", value=False)
-mostrar_alteracion = st.sidebar.checkbox("Mostrar Alteración", value=False)
+mostrar_alteracion = st.sidebar.checkbox("Mostrar Alteración", value=True)
 
 # --- Visualización 3D ---
-st.title("Visualización 3D de Sondajes")
+st.title("Visualización 3D de Sondajes - Pórfido Cu-Au-Mo")
 
 fig = go.Figure()
 
@@ -101,7 +193,7 @@ for sondaje in df_sondajes_3d["Sondaje"].unique():
             x=df_sondaje["X"],
             y=df_sondaje["Y"],
             z=df_sondaje["Z"],
-            mode='lines+markers',
+            mode="lines+markers",
             name=sondaje,
             marker=dict(
                 size=4,
@@ -128,7 +220,7 @@ if mostrar_volumen:
         (df_sondajes_3d["X"], df_sondajes_3d["Y"], df_sondajes_3d["Z"]),
         df_sondajes_3d[ley_a_visualizar],
         (xi, yi, zi),
-        method='linear',
+        method="linear",
     )
 
     # Agregar el volumen 3D al gráfico
@@ -149,21 +241,26 @@ if mostrar_volumen:
 
 # --- Mostrar alteración ---
 if mostrar_alteracion:
-    df_alteracion = df_sondajes_3d[df_sondajes_3d["Alteración"] == 1]
-    fig.add_trace(
-        go.Scatter3d(
-            x=df_alteracion["X"],
-            y=df_alteracion["Y"],
-            z=df_alteracion["Z"],
-            mode="markers",
-            name="Alteración",
-            marker=dict(
-                size=3,
-                color="yellow",  # Color para la alteración
-                symbol="diamond-open",  
-            ),
+    for alteracion_tipo in ["Sílice", "Potásica"]:
+        df_alteracion = df_sondajes_3d[
+            df_sondajes_3d["Alteración"] == alteracion_tipo
+        ]
+        fig.add_trace(
+            go.Scatter3d(
+                x=df_alteracion["X"],
+                y=df_alteracion["Y"],
+                z=df_alteracion["Z"],
+                mode="markers",
+                name=alteracion_tipo,
+                marker=dict(
+                    size=3,
+                    symbol="diamond-open",
+                    color="orange"
+                    if alteracion_tipo == "Potásica"
+                    else "blue",  
+                ),
+            )
         )
-    )
 
 # --- Diseño del gráfico ---
 fig.update_layout(
@@ -175,7 +272,9 @@ fig.update_layout(
     ),
     width=800,
     height=600,
-    margin=dict(l=65, r=100, b=65, t=90)
+    margin=dict(l=65, r=100, b=65, t=90),
 )
+
+st.plotly_chart(fig)
 
 st.plotly_chart(fig)
