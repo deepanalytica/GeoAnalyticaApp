@@ -11,7 +11,6 @@ LEY_MEDIA = {"Cu": 0.7, "Au": 0.2, "Mo": 0.01}  # %Cu, g/t Au, % Mo
 DESVIACION_ESTANDAR = {"Cu": 0.4, "Au": 0.1, "Mo": 0.005}
 
 # --- Datos de los Sondajes (Ajustables) ---
-# Distribución más dispersa y realista de los sondajes
 datos_sondajes = {
     "Sondaje": [f"DH-{i+1}" for i in range(NUM_SONDAJES)],
     "Este (m)": [
@@ -86,12 +85,13 @@ datos_sondajes = {
 }
 df_sondajes = pd.DataFrame(datos_sondajes)
 
+
 # --- Funciones ---
 def generar_leyes(
     profundidad, ley_media, desviacion_estandar, factor_zonificacion=1
 ):
     """Genera leyes con tendencia, mayor variabilidad y zonificación."""
-    tendencia = np.random.normal(0, 0.005) * profundidad  # Mayor tendencia
+    tendencia = np.random.normal(0, 0.005) * profundidad
     return np.maximum(
         0,
         np.random.normal(
@@ -164,12 +164,21 @@ def generar_datos_sondaje(sondaje_data):
         )
     return datos
 
-# --- Generar datos para todos los sondajes ---
-datos_sondajes_3d = []
-for i in range(len(df_sondajes)):
-    datos_sondajes_3d.extend(generar_datos_sondaje(df_sondajes.iloc[i]))
 
-df_sondajes_3d = pd.DataFrame(datos_sondajes_3d)
+# --- Generar datos (una sola vez) ---
+@st.cache_data 
+def cargar_datos():
+    """Genera y almacena en caché los datos de los sondajes."""
+    datos_sondajes_3d = []
+    for i in range(len(df_sondajes)):
+        datos_sondajes_3d.extend(
+            generar_datos_sondaje(df_sondajes.iloc[i])
+        )
+    return pd.DataFrame(datos_sondajes_3d)
+
+
+# --- Cargar datos usando la función cacheada ---
+df_sondajes_3d = cargar_datos()
 
 # --- Interfaz de usuario de Streamlit ---
 st.sidebar.title("Parámetros de Visualización")
@@ -183,6 +192,7 @@ mostrar_alteracion = st.sidebar.checkbox("Mostrar Alteración", value=True)
 # --- Visualización 3D ---
 st.title("Visualización 3D de Sondajes - Pórfido Cu-Au-Mo")
 
+# --- Crear figura de Plotly ---
 fig = go.Figure()
 
 # --- Gráfico de dispersión 3D de los sondajes ---
@@ -275,6 +285,5 @@ fig.update_layout(
     margin=dict(l=65, r=100, b=65, t=90),
 )
 
-st.plotly_chart(fig)
-
+# --- Mostrar el gráfico ---
 st.plotly_chart(fig)
