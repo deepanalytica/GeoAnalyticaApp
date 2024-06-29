@@ -12,14 +12,162 @@ LEY_MEDIA = {"Cu": 0.7, "Au": 0.2, "Mo": 0.01}  # %Cu, g/t Au, % Mo
 DESVIACION_ESTANDAR = {"Cu": 0.4, "Au": 0.1, "Mo": 0.005}
 
 # --- Datos de los Sondajes (Ajustables) ---
-# (Mismos datos que en el código anterior)
+datos_sondajes = {
+    "Sondaje": [f"DH-{i+1}" for i in range(NUM_SONDAJES)],
+    "Este (m)": [
+        0,
+        20,
+        40,
+        60,
+        80,
+        10,
+        30,
+        50,
+        70,
+        90,
+        0,
+        20,
+        40,
+        60,
+        80,
+        10,
+        30,
+        50,
+        70,
+        90,
+    ],
+    "Norte (m)": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        10,
+        20,
+        30,
+        40,
+        50,
+        -10,
+        -10,
+        -10,
+        -10,
+        -10,
+        -20,
+        -20,
+        -20,
+        -20,
+        -20,
+    ],
+    "Elevación (m)": [1000 + i - 5 for i in range(NUM_SONDAJES)],
+    "Azimut (°)": [
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        0,
+        45,
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        0,
+        45,
+    ],
+    "Inclinación (°)": [-60, -55, -50, -45, -60, -55, -50, -45, -60, -55] * 2,
+    "Profundidad (m)": [PROFUNDIDAD_SONDAJE] * NUM_SONDAJES,
+}
+df_sondajes = pd.DataFrame(datos_sondajes)
+
 
 # --- Funciones ---
-# (Las funciones generar_leyes y generar_datos_sondaje son iguales 
-# al código anterior, no es necesario modificarlas)
+def generar_leyes(
+    profundidad, ley_media, desviacion_estandar, factor_zonificacion=1
+):
+    """Genera leyes con tendencia, mayor variabilidad y zonificación."""
+    tendencia = np.random.normal(0, 0.005) * profundidad
+    return np.maximum(
+        0,
+        np.random.normal(
+            (ley_media - tendencia) * factor_zonificacion,
+            desviacion_estandar,
+            profundidad,
+        ),
+    )
+
+
+def generar_datos_sondaje(sondaje_data):
+    """Genera datos de puntos de muestra con leyes y alteración."""
+    datos = []
+    for j in range(sondaje_data["Profundidad (m)"]):
+        x = sondaje_data[
+            "Este (m)"
+        ] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.cos(
+            np.deg2rad(sondaje_data["Azimut (°)"])
+        )
+        y = sondaje_data[
+            "Norte (m)"
+        ] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.sin(
+            np.deg2rad(sondaje_data["Azimut (°)"])
+        )
+        z = sondaje_data["Elevación (m)"] - j * np.cos(
+            np.deg2rad(sondaje_data["Inclinación (°)"])
+        )
+
+        # Zonificación simple (distancia al centro)
+        dist_centro = np.sqrt(x**2 + y**2)
+        factor_cu = max(
+            0.1, 1 - (dist_centro / 50)
+        )  # Mayor ley de Cu hacia el centro
+        factor_au = max(
+            0.1, (dist_centro / 70)
+        )  # Mayor ley de Au en la periferia
+
+        # Simular alteraciones (probabilidad según la profundidad)
+        prob_silice = 1 / (1 + np.exp(-(z - 970) / 5))  # Sílice en profundidad
+        prob_potasica = 1 / (1 + np.exp(-(z - 985) / 3))  # Potásica más arriba
+        alteracion = (
+            "Sílice"
+            if np.random.rand() < prob_silice
+            else "Potásica"
+            if np.random.rand() < prob_potasica
+            else "Sin alteración"
+        )
+
+        datos.append(
+            {
+                "Sondaje": sondaje_data["Sondaje"],
+                "Profundidad": j + 1,
+                "X": x,
+                "Y": y,
+                "Z": z,
+                "Cu (%)": generar_leyes(
+                    j + 1, LEY_MEDIA["Cu"], DESVIACION_ESTANDAR["Cu"], factor_cu
+                )[j],
+                "Au (g/t)": generar_leyes(
+                    j + 1,
+                    LEY_MEDIA["Au"],
+                    DESVIACION_ESTANDAR["Au"],
+                    factor_au,
+                )[j],
+                "Mo (%)": generar_leyes(
+                    j + 1, LEY_MEDIA["Mo"], DESVIACION_ESTANDAR["Mo"]
+                )[j],
+                "Alteración": alteracion,
+            }
+        )
+    return datos
+
 
 # --- Generar datos (una sola vez) ---
-@st.cache_data
+@st.cache_data 
 def cargar_datos():
     """Genera y almacena en caché los datos de los sondajes."""
     datos_sondajes_3d = []
@@ -30,6 +178,7 @@ def cargar_datos():
     return pd.DataFrame(datos_sondajes_3d)
 
 
+# --- Cargar datos usando la función cacheada ---
 df_sondajes_3d = cargar_datos()
 
 # --- Interfaz de usuario de Streamlit ---
@@ -90,15 +239,59 @@ for sondaje in df_filtrado["Sondaje"].unique():
         )
     )
 
-# Volumen 3D
-if mostrar_volumen:
-    # (El código para generar el volumen 3D es el mismo que en la versión anterior,
-    #  pero usando df_filtrado en lugar de df_sondajes_3d)
-
 # Alteración
 if mostrar_alteracion:
-    # (El código para mostrar la alteración es el mismo que en la versión anterior,
-    #  pero usando df_filtrado en lugar de df_sondajes_3d)
+    for alteracion_tipo in ["Sílice", "Potásica"]:
+        df_alteracion = df_filtrado[
+            df_filtrado["Alteración"] == alteracion_tipo
+        ]
+        fig.add_trace(
+            go.Scatter3d(
+                x=df_alteracion["X"],
+                y=df_alteracion["Y"],
+                z=df_alteracion["Z"],
+                mode="markers",
+                name=alteracion_tipo,
+                marker=dict(
+                    size=3,
+                    symbol="diamond-open",
+                    color="orange"
+                    if alteracion_tipo == "Potásica"
+                    else "blue",  
+                ),
+            )
+        )
+    # Volumen 3D (dentro del bloque if mostrar_alteracion)
+    if mostrar_volumen:
+        # Crear una malla 3D para la interpolación
+        xi = np.linspace(df_filtrado["X"].min(), df_filtrado["X"].max(), 20)
+        yi = np.linspace(df_filtrado["Y"].min(), df_filtrado["Y"].max(), 20)
+        zi = np.linspace(df_filtrado["Z"].min(), df_filtrado["Z"].max(), 20)
+        xi, yi, zi = np.meshgrid(xi, yi, zi)
+
+        # Interpolar los valores de ley en la malla 3D
+        valores_ley = griddata(
+            (df_filtrado["X"], df_filtrado["Y"], df_filtrado["Z"]),
+            df_filtrado[ley_a_visualizar],
+            (xi, yi, zi),
+            method="linear",
+        )
+
+        # Agregar el volumen 3D al gráfico
+        fig.add_trace(
+            go.Volume(
+                x=xi.flatten(),
+                y=yi.flatten(),
+                z=zi.flatten(),
+                value=valores_ley.flatten(),
+                isomin=df_filtrado[ley_a_visualizar].min(),
+                isomax=df_filtrado[ley_a_visualizar].max(),
+                opacity=0.2,  # Ajustar la transparencia
+                surface_count=15,  # Ajustar la resolución
+                colorscale="Viridis",
+                colorbar=dict(title=ley_a_visualizar, x=1.2, len=0.8),
+            )
+        )
 
 # --- Diseño del gráfico 3D ---
 fig.update_layout(
