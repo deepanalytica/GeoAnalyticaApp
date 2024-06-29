@@ -12,15 +12,174 @@ LEY_MEDIA = {"Cu": 0.7, "Au": 0.2, "Mo": 0.01}  # %Cu, g/t Au, % Mo
 DESVIACION_ESTANDAR = {"Cu": 0.4, "Au": 0.1, "Mo": 0.005}
 
 # --- Datos de los Sondajes (Ajustables) ---
-# ... (Mismos datos de sondajes que en el código anterior)
+datos_sondajes = {
+    "Sondaje": [f"DH-{i+1}" for i in range(NUM_SONDAJES)],
+    "Este (m)": [
+        0,
+        20,
+        40,
+        60,
+        80,
+        10,
+        30,
+        50,
+        70,
+        90,
+        0,
+        20,
+        40,
+        60,
+        80,
+        10,
+        30,
+        50,
+        70,
+        90,
+    ],
+    "Norte (m)": [
+        0,
+        10,
+        20,
+        30,
+        40,
+        10,
+        20,
+        30,
+        40,
+        50,
+        -10,
+        -10,
+        -10,
+        -10,
+        -10,
+        -20,
+        -20,
+        -20,
+        -20,
+        -20,
+    ],
+    "Elevación (m)": [1000 + i - 5 for i in range(NUM_SONDAJES)],
+    "Azimut (°)": [
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        0,
+        45,
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        0,
+        45,
+    ],
+    "Inclinación (°)": [-60, -55, -50, -45, -60, -55, -50, -45, -60, -55] * 2,
+    "Profundidad (m)": [PROFUNDIDAD_SONDAJE] * NUM_SONDAJES,
+}
+df_sondajes = pd.DataFrame(datos_sondajes)
 
 # --- Funciones ---
-# ... (Funciones generar_leyes y generar_datos_sondaje, igual que antes)
+def generar_leyes(
+    profundidad, ley_media, desviacion_estandar, factor_zonificacion=1
+):
+    """Genera leyes con tendencia, mayor variabilidad y zonificación."""
+    tendencia = np.random.normal(0, 0.005) * profundidad
+    return np.maximum(
+        0,
+        np.random.normal(
+            (ley_media - tendencia) * factor_zonificacion,
+            desviacion_estandar,
+            profundidad,
+        ),
+    )
+
+
+def generar_datos_sondaje(sondaje_data):
+    """Genera datos de puntos de muestra con leyes y alteración."""
+    datos = []
+    for j in range(sondaje_data["Profundidad (m)"]):
+        x = sondaje_data[
+            "Este (m)"
+        ] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.cos(
+            np.deg2rad(sondaje_data["Azimut (°)"])
+        )
+        y = sondaje_data[
+            "Norte (m)"
+        ] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.sin(
+            np.deg2rad(sondaje_data["Azimut (°)"])
+        )
+        z = sondaje_data["Elevación (m)"] - j * np.cos(
+            np.deg2rad(sondaje_data["Inclinación (°)"])
+        )
+
+        # Zonificación simple (distancia al centro)
+        dist_centro = np.sqrt(x**2 + y**2)
+        factor_cu = max(
+            0.1, 1 - (dist_centro / 50)
+        )  # Mayor ley de Cu hacia el centro
+        factor_au = max(
+            0.1, (dist_centro / 70)
+        )  # Mayor ley de Au en la periferia
+
+        # Simular alteraciones (probabilidad según la profundidad y distancia)
+        prob_silice = 1 / (1 + np.exp(-(z - 970) / 5)) * (
+            1 - dist_centro / 100
+        )  # Sílice en profundidad y centro
+        prob_potasica = 1 / (1 + np.exp(-(z - 985) / 3)) * (
+            dist_centro / 80
+        )  # Potásica más arriba y en la periferia
+        prob_argilica = 1 / (1 + np.exp((z - 990) / 10)) * (
+            1 - dist_centro / 120
+        )  # Argílica superficial y en el centro
+        alteracion = (
+            "Sílice"
+            if np.random.rand() < prob_silice
+            else "Potásica"
+            if np.random.rand() < prob_potasica
+            else "Argílica"
+            if np.random.rand() < prob_argilica
+            else "Sin alteración"
+        )
+
+        datos.append(
+            {
+                "Sondaje": sondaje_data["Sondaje"],
+                "Profundidad": j + 1,
+                "X": x,
+                "Y": y,
+                "Z": z,
+                "Cu (%)": generar_leyes(
+                    j + 1, LEY_MEDIA["Cu"], DESVIACION_ESTANDAR["Cu"], factor_cu
+                )[j],
+                "Au (g/t)": generar_leyes(
+                    j + 1, LEY_MEDIA["Au"], DESVIACION_ESTANDAR["Au"], factor_au
+                )[j],
+                "Mo (%)": generar_leyes(
+                    j + 1, LEY_MEDIA["Mo"], DESVIACION_ESTANDAR["Mo"]
+                )[j],
+                "Alteración": alteracion,
+            }
+        )
+    return datos
+
 
 # --- Generar datos (una sola vez) ---
 @st.cache_data
 def cargar_datos():
-    # ... (Función igual que en el código anterior)
+    """Genera y almacena en caché los datos de los sondajes."""
+    datos_sondajes_3d = []
+    for i in range(len(df_sondajes)):
+        datos_sondajes_3d.extend(generar_datos_sondaje(df_sondajes.iloc[i]))
+    df_sondajes_3d = pd.DataFrame(datos_sondajes_3d)
+    return df_sondajes_3d
 
 df_sondajes_3d = cargar_datos()
 
@@ -83,11 +242,42 @@ with col1:
     fig = go.Figure()
 
     # --- Sondajes en el gráfico 3D ---
-    # ... (Código para los sondajes en el gráfico 3D, igual que antes)
+    for sondaje in df_filtrado["Sondaje"].unique():
+        df_sondaje = df_filtrado[df_filtrado["Sondaje"] == sondaje]
+        fig.add_trace(
+            go.Scatter3d(
+                x=df_sondaje["X"],
+                y=df_sondaje["Y"],
+                z=df_sondaje["Z"],
+                mode="lines+markers",
+                name=sondaje,
+                marker=dict(size=4, color="grey", line=dict(width=2)),
+                customdata=df_sondaje.index,  # Agregar índices de filas como customdata
+            )
+        )
 
     # --- Alteración en el gráfico 3D ---
     if mostrar_alteracion:
-        # ... (Código para la alteración, igual que antes)
+        alteraciones = ["Sílice", "Potásica", "Argílica"]
+        colores_alteraciones = ["blue", "orange", "green"]
+        for i, alteracion_tipo in enumerate(alteraciones):
+            df_alteracion = df_filtrado[
+                df_filtrado["Alteración"] == alteracion_tipo
+            ]
+            fig.add_trace(
+                go.Scatter3d(
+                    x=df_alteracion["X"],
+                    y=df_alteracion["Y"],
+                    z=df_alteracion["Z"],
+                    mode="markers",
+                    name=alteracion_tipo,
+                    marker=dict(
+                        size=3,
+                        symbol="diamond-open",
+                        color=colores_alteraciones[i],
+                    ),
+                )
+            )
 
     # --- Volumen 3D ---
     if mostrar_volumen:
@@ -182,7 +372,39 @@ with col1:
     st.plotly_chart(fig)
 
 # --- Sección Transversal ---
-# ... (Código para la sección transversal, igual que antes)
+st.header("Sección Transversal")
+direccion_seccion = st.selectbox("Dirección:", ["E-W", "N-S"])
+
+if direccion_seccion == "E-W":
+    coordenada_fija = df_filtrado["Y"].mean()
+    coordenada_variable = df_filtrado["X"]
+    titulo_eje = "Este (m)"
+else:
+    coordenada_fija = df_filtrado["X"].mean()
+    coordenada_variable = df_filtrado["Y"]
+    titulo_eje = "Norte (m)"
+
+fig_seccion = go.Figure(
+    data=go.Scatter(
+        x=coordenada_variable,
+        y=df_filtrado["Z"],
+        mode="markers",
+        marker=dict(
+            size=6,
+            color=df_filtrado[ley_a_visualizar],  # Usar la variable global
+            colorscale="Viridis",
+            colorbar=dict(title=ley_a_visualizar),
+            cmin=df_filtrado[ley_a_visualizar].min(),
+            cmax=df_filtrado[ley_a_visualizar].max(),
+        ),
+    )
+)
+fig_seccion.update_layout(
+    title=f"Sección Transversal {direccion_seccion}",
+    xaxis_title=titulo_eje,
+    yaxis_title="Elevación (m)",
+)
+st.plotly_chart(fig_seccion)
 
 # --- Mapa de calor 2D ---
 st.header("Mapa de Calor 2D")
