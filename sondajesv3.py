@@ -215,48 +215,53 @@ st.title("Visualización 3D de Sondajes - Pórfido Cu-Au-Mo")
 # --- Gráfico 3D ---
 fig = go.Figure()
 
-# Sondajes
-for sondaje in df_filtrado["Sondaje"].unique():
-    df_sondaje = df_filtrado[df_filtrado["Sondaje"] == sondaje]
-    fig.add_trace(
-        go.Scatter3d(
-            x=df_sondaje["X"],
-            y=df_sondaje["Y"],
-            z=df_sondaje["Z"],
-            mode="lines+markers",
-            name=sondaje,
-            marker=dict(
-                size=4,
-                color="grey",  # Color base de los sondajes
-                line=dict(width=2),
-            ),
-        )
-    )
+# --- Contenedor para el gráfico 3D y el scatterplot ---
+col1, col2 = st.columns([3, 1])
 
-# Alteración
-if mostrar_alteracion:
-    for alteracion_tipo in ["Sílice", "Potásica"]:
-        df_alteracion = df_filtrado[
-            df_filtrado["Alteración"] == alteracion_tipo
-        ]
+with col1:
+    # --- Sondajes en el gráfico 3D ---
+    for sondaje in df_filtrado["Sondaje"].unique():
+        df_sondaje = df_filtrado[df_filtrado["Sondaje"] == sondaje]
         fig.add_trace(
             go.Scatter3d(
-                x=df_alteracion["X"],
-                y=df_alteracion["Y"],
-                z=df_alteracion["Z"],
-                mode="markers",
-                name=alteracion_tipo,
+                x=df_sondaje["X"],
+                y=df_sondaje["Y"],
+                z=df_sondaje["Z"],
+                mode="lines+markers",
+                name=sondaje,
                 marker=dict(
-                    size=3,
-                    symbol="diamond-open",
-                    color="orange"
-                    if alteracion_tipo == "Potásica"
-                    else "blue",  
+                    size=4,
+                    color="grey",  # Color base de los sondajes
+                    line=dict(width=2),
                 ),
+                customdata=df_sondaje.index,  # Agregar índices de filas como customdata
             )
         )
 
-    # Volumen 3D (dentro del bloque if mostrar_alteracion)
+    # --- Alteración en el gráfico 3D ---
+    if mostrar_alteracion:
+        for alteracion_tipo in ["Sílice", "Potásica"]:
+            df_alteracion = df_filtrado[
+                df_filtrado["Alteración"] == alteracion_tipo
+            ]
+            fig.add_trace(
+                go.Scatter3d(
+                    x=df_alteracion["X"],
+                    y=df_alteracion["Y"],
+                    z=df_alteracion["Z"],
+                    mode="markers",
+                    name=alteracion_tipo,
+                    marker=dict(
+                        size=3,
+                        symbol="diamond-open",
+                        color="orange"
+                        if alteracion_tipo == "Potásica"
+                        else "blue",
+                    ),
+                )
+            )
+
+    # --- Volumen 3D ---
     if mostrar_volumen:
         # Crear una malla 3D para la interpolación
         num_puntos_malla = 30  # Ajustar para la resolución del volumen
@@ -310,20 +315,50 @@ if mostrar_alteracion:
                 )
             )
 
-# --- Diseño del gráfico 3D ---
-fig.update_layout(
-    scene=dict(
-        xaxis_title="Este (m)",
-        yaxis_title="Norte (m)",
-        zaxis_title="Elevación (m)",
-        aspectmode="data",
-    ),
-    width=800,
-    height=600,
-    margin=dict(l=65, r=150, b=65, t=90),  # Más espacio para las barras de color
-)
+    # --- Diseño del gráfico 3D ---
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="Este (m)",
+            yaxis_title="Norte (m)",
+            zaxis_title="Elevación (m)",
+            aspectmode="data",
+        ),
+        width=800,
+        height=600,
+        margin=dict(l=65, r=150, b=65, t=90),  # Más espacio para las barras de color
+        clickmode="event+select",  # Habilitar la selección de puntos
+    )
 
-st.plotly_chart(fig)
+    st.plotly_chart(fig)
+
+with col2:
+    # --- Gráfico de Dispersión ---
+    st.header("Gráfico de Dispersión")
+    elemento_x = st.selectbox("Elemento X:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
+    elemento_y = st.selectbox("Elemento Y:", ["Au (g/t)", "Cu (%)", "Mo (%)"])
+    fig_scatter = px.scatter(
+        df_filtrado,
+        x=elemento_x,
+        y=elemento_y,
+        title="Gráfico de Dispersión",
+        trendline="ols",  # Agregar línea de tendencia
+    )
+
+    # --- Obtener puntos seleccionados en el scatterplot ---
+    selected_points = fig_scatter.data[0].selectedpoints
+
+    # --- Resaltar puntos seleccionados en el gráfico 3D ---
+    if selected_points:
+        selected_indices = [p["pointIndex"] for p in selected_points]
+        for i, trace in enumerate(fig.data):
+            if "customdata" in trace:
+                # Verificar si los índices seleccionados están en los datos de la traza
+                mask = np.isin(trace.customdata, selected_indices)
+                fig.data[i].marker.color = np.where(
+                    mask, "red", fig.data[i].marker.color
+                )
+
+    st.plotly_chart(fig_scatter)
 
 # --- Sección Transversal ---
 st.header("Sección Transversal")
@@ -371,16 +406,3 @@ fig_heatmap = px.density_heatmap(
     labels={"X": "Este (m)", "Y": "Norte (m)"},
 )
 st.plotly_chart(fig_heatmap)
-
-# --- Gráfico de dispersión ---
-st.header("Gráfico de Dispersión")
-elemento_x = st.selectbox("Elemento X:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
-elemento_y = st.selectbox("Elemento Y:", ["Au (g/t)", "Cu (%)", "Mo (%)"])
-fig_scatter = px.scatter(
-    df_filtrado,
-    x=elemento_x,
-    y=elemento_y,
-    title="Gráfico de Dispersión",
-    trendline="ols",  # Agregar línea de tendencia
-)
-st.plotly_chart(fig_scatter)
