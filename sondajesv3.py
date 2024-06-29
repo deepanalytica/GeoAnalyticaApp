@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from scipy.interpolate import Rbf  # Interpolación radial
-import plotly.express as px  # Para mapas de calor y gráficos de dispersión
+from scipy.interpolate import Rbf
+import plotly.express as px
 
 # --- Parámetros de la Simulación (Ajustables) ---
 NUM_SONDAJES = 20
@@ -15,14 +15,71 @@ DESVIACION_ESTANDAR = {"Cu": 0.4, "Au": 0.1, "Mo": 0.005}
 datos_sondajes = {
     "Sondaje": [f"DH-{i+1}" for i in range(NUM_SONDAJES)],
     "Este (m)": [
-        0, 20, 40, 60, 80, 10, 30, 50, 70, 90, 0, 20, 40, 60, 80, 10, 30, 50, 70, 90,
+        0,
+        20,
+        40,
+        60,
+        80,
+        10,
+        30,
+        50,
+        70,
+        90,
+        0,
+        20,
+        40,
+        60,
+        80,
+        10,
+        30,
+        50,
+        70,
+        90,
     ],
     "Norte (m)": [
-        0, 10, 20, 30, 40, 10, 20, 30, 40, 50, -10, -10, -10, -10, -10, -20, -20, -20, -20, -20,
+        0,
+        10,
+        20,
+        30,
+        40,
+        10,
+        20,
+        30,
+        40,
+        50,
+        -10,
+        -10,
+        -10,
+        -10,
+        -10,
+        -20,
+        -20,
+        -20,
+        -20,
+        -20,
     ],
     "Elevación (m)": [1000 + i - 5 for i in range(NUM_SONDAJES)],
     "Azimut (°)": [
-        0, 45, 90, 135, 180, 225, 270, 315, 0, 45, 0, 45, 90, 135, 180, 225, 270, 315, 0, 45,
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        0,
+        45,
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        0,
+        45,
     ],
     "Inclinación (°)": [-60, -55, -50, -45, -60, -55, -50, -45, -60, -55] * 2,
     "Profundidad (m)": [PROFUNDIDAD_SONDAJE] * NUM_SONDAJES,
@@ -30,7 +87,9 @@ datos_sondajes = {
 df_sondajes = pd.DataFrame(datos_sondajes)
 
 # --- Funciones ---
-def generar_leyes(profundidad, ley_media, desviacion_estandar, factor_zonificacion=1):
+def generar_leyes(
+    profundidad, ley_media, desviacion_estandar, factor_zonificacion=1
+):
     """Genera leyes con tendencia, mayor variabilidad y zonificación."""
     tendencia = np.random.normal(0, 0.005) * profundidad
     return np.maximum(
@@ -47,13 +106,15 @@ def generar_datos_sondaje(sondaje_data):
     """Genera datos de puntos de muestra con leyes y alteración."""
     datos = []
     for j in range(sondaje_data["Profundidad (m)"]):
-        x = sondaje_data["Este (m)"] - j * np.sin(
-            np.deg2rad(sondaje_data["Inclinación (°)"])
-        ) * np.cos(np.deg2rad(sondaje_data["Azimut (°)"])
+        x = sondaje_data[
+            "Este (m)"
+        ] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.cos(
+            np.deg2rad(sondaje_data["Azimut (°)"])
         )
-        y = sondaje_data["Norte (m)"] - j * np.sin(
-            np.deg2rad(sondaje_data["Inclinación (°)"])
-        ) * np.sin(np.deg2rad(sondaje_data["Azimut (°)"])
+        y = sondaje_data[
+            "Norte (m)"
+        ] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.sin(
+            np.deg2rad(sondaje_data["Azimut (°)"])
         )
         z = sondaje_data["Elevación (m)"] - j * np.cos(
             np.deg2rad(sondaje_data["Inclinación (°)"])
@@ -61,8 +122,12 @@ def generar_datos_sondaje(sondaje_data):
 
         # Zonificación simple (distancia al centro)
         dist_centro = np.sqrt(x**2 + y**2)
-        factor_cu = max(0.1, 1 - (dist_centro / 50))  # Mayor ley de Cu hacia el centro
-        factor_au = max(0.1, (dist_centro / 70))  # Mayor ley de Au en la periferia
+        factor_cu = max(
+            0.1, 1 - (dist_centro / 50)
+        )  # Mayor ley de Cu hacia el centro
+        factor_au = max(
+            0.1, (dist_centro / 70)
+        )  # Mayor ley de Au en la periferia
 
         # Simular alteraciones (probabilidad según la profundidad y distancia)
         prob_silice = 1 / (1 + np.exp(-(z - 970) / 5)) * (
@@ -154,13 +219,27 @@ ley_a_visualizar = st.selectbox(
 # --- Visualización ---
 st.title("Visualización 3D de Sondajes - Pórfido Cu-Au-Mo")
 
-# --- Gráfico 3D ---
-fig = go.Figure()
-
 # --- Contenedor para el gráfico 3D y el scatterplot ---
 col1, col2 = st.columns([3, 1])
 
+# --- Scatterplot (Columna 2) ---
+with col2:
+    st.header("Gráfico de Dispersión")
+    elemento_x = st.selectbox("Elemento X:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
+    elemento_y = st.selectbox("Elemento Y:", ["Au (g/t)", "Cu (%)", "Mo (%)"])
+    fig_scatter = px.scatter(
+        df_filtrado,
+        x=elemento_x,
+        y=elemento_y,
+        title="Gráfico de Dispersión",
+        trendline="ols",  # Agregar línea de tendencia
+    )
+    st.plotly_chart(fig_scatter)
+
+# --- Gráfico 3D (Columna 1) ---
 with col1:
+    fig = go.Figure()
+
     # --- Sondajes en el gráfico 3D ---
     for sondaje in df_filtrado["Sondaje"].unique():
         df_sondaje = df_filtrado[df_filtrado["Sondaje"] == sondaje]
@@ -172,7 +251,7 @@ with col1:
                 mode="lines+markers",
                 name=sondaje,
                 marker=dict(size=4, color="grey", line=dict(width=2)),
-                customdata=df_sondaje.index,
+                customdata=df_sondaje.index,  # Agregar índices de filas como customdata
             )
         )
 
@@ -267,36 +346,24 @@ with col1:
         clickmode="event+select",
     )
 
-    st.plotly_chart(fig)
-
-with col2:
-    # --- Gráfico de Dispersión ---
-    st.header("Gráfico de Dispersión")
-    elemento_x = st.selectbox("Elemento X:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
-    elemento_y = st.selectbox("Elemento Y:", ["Au (g/t)", "Cu (%)", "Mo (%)"])
-    fig_scatter = px.scatter(
-        df_filtrado,
-        x=elemento_x,
-        y=elemento_y,
-        title="Gráfico de Dispersión",
-        trendline="ols",  # Agregar línea de tendencia
-    )
-
     # --- Obtener puntos seleccionados en el scatterplot ---
-    selected_points = fig_scatter.data[0].selectedpoints
+    selected_points = (
+        fig_scatter.data[0].selectedpoints
+        if fig_scatter.data[0].selectedpoints is not None
+        else []
+    )
 
     # --- Resaltar puntos seleccionados en el gráfico 3D ---
     if selected_points:
         selected_indices = [p["pointIndex"] for p in selected_points]
         for i, trace in enumerate(fig.data):
             if "customdata" in trace:
-                # Verificar si los índices seleccionados están en los datos de la traza
                 mask = np.isin(trace.customdata, selected_indices)
                 fig.data[i].marker.color = np.where(
                     mask, "red", fig.data[i].marker.color
                 )
 
-    st.plotly_chart(fig_scatter)
+    st.plotly_chart(fig)
 
 # --- Sección Transversal ---
 st.header("Sección Transversal")
