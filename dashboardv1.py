@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from scipy.interpolate import griddata
-from plotly.subplots import make_subplots
 
 # --- Parámetros de la Simulación (Ajustables) ---
 NUM_SONDAJES = 20
@@ -15,11 +14,11 @@ DESVIACION_ESTANDAR = {"Cu": 0.4, "Au": 0.1, "Mo": 0.005}
 datos_sondajes = {
     "Sondaje": [f"DH-{i+1}" for i in range(NUM_SONDAJES)],
     "Este (m)": [
-        0, 20, 40, 60, 80, 10, 30, 50, 70, 90, 
+        0, 20, 40, 60, 80, 10, 30, 50, 70, 90,
         0, 20, 40, 60, 80, 10, 30, 50, 70, 90,
     ],
     "Norte (m)": [
-        0, 10, 20, 30, 40, 10, 20, 30, 40, 50, 
+        0, 10, 20, 30, 40, 10, 20, 30, 40, 50,
         -10, -10, -10, -10, -10, -20, -20, -20, -20, -20,
     ],
     "Elevación (m)": [1000 + i - 5 for i in range(NUM_SONDAJES)],
@@ -46,12 +45,14 @@ def generar_datos_sondaje(sondaje_data):
     """Genera datos de puntos de muestra con leyes y alteración."""
     datos = []
     for j in range(sondaje_data["Profundidad (m)"]):
-        x = sondaje_data["Este (m)"] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.cos(np.deg2rad(sondaje_data["Azimut (°)"]))
-        y = sondaje_data["Norte (m)"] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.sin(np.deg2rad(sondaje_data["Azimut (°)"]))
+        x = sondaje_data["Este (m)"] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.cos(
+            np.deg2rad(sondaje_data["Azimut (°)"]))
+        y = sondaje_data["Norte (m)"] - j * np.sin(np.deg2rad(sondaje_data["Inclinación (°)"])) * np.sin(
+            np.deg2rad(sondaje_data["Azimut (°)"]))
         z = sondaje_data["Elevación (m)"] - j * np.cos(np.deg2rad(sondaje_data["Inclinación (°)"]))
 
         # Zonificación simple (distancia al centro)
-        dist_centro = np.sqrt(x**2 + y**2)
+        dist_centro = np.sqrt(x ** 2 + y ** 2)
         factor_cu = max(0.1, 1 - (dist_centro / 50))  # Mayor ley de Cu hacia el centro
         factor_au = max(0.1, (dist_centro / 70))  # Mayor ley de Au en la periferia
 
@@ -88,7 +89,7 @@ def generar_datos_sondaje(sondaje_data):
     return datos
 
 # --- Generar datos (una sola vez) ---
-@st.cache_data 
+@st.cache_data
 def cargar_datos():
     """Genera y almacena en caché los datos de los sondajes."""
     datos_sondajes_3d = []
@@ -112,8 +113,10 @@ mostrar_alteracion = st.sidebar.checkbox("Mostrar Alteración", value=True)
 # --- Filtros ---
 st.sidebar.header("Filtros")
 profundidad_min = st.sidebar.slider("Profundidad Mínima (m)", min_value=0, max_value=PROFUNDIDAD_SONDAJE, value=0)
-profundidad_max = st.sidebar.slider("Profundidad Máxima (m)", min_value=0, max_value=PROFUNDIDAD_SONDAJE, value=PROFUNDIDAD_SONDAJE)
-df_filtrado = df_sondajes_3d[(df_sondajes_3d["Profundidad"] >= profundidad_min) & (df_sondajes_3d["Profundidad"] <= profundidad_max)]
+profundidad_max = st.sidebar.slider("Profundidad Máxima (m)", min_value=0,
+                                    max_value=PROFUNDIDAD_SONDAJE, value=PROFUNDIDAD_SONDAJE)
+df_filtrado = df_sondajes_3d[(df_sondajes_3d["Profundidad"] >= profundidad_min) & (
+        df_sondajes_3d["Profundidad"] <= profundidad_max)]
 
 # --- Visualización ---
 st.title("Visualización 3D de Sondajes - Pórfido Cu-Au-Mo")
@@ -141,11 +144,11 @@ if mostrar_sondajes:
 # Volumen 3D (Isosuperficie)
 if mostrar_volumen:
     # Interpolación para la isosuperficie
-    npts = 50  # Aumentar para mayor resolución
+    npts = 30  # Número de puntos de la grilla (reduce para menor resolución)
     grid_x, grid_y, grid_z = np.mgrid[
-        df_filtrado["X"].min() : df_filtrado["X"].max() : complex(npts),
-        df_filtrado["Y"].min() : df_filtrado["Y"].max() : complex(npts),
-        df_filtrado["Z"].min() : df_filtrado["Z"].max() : complex(npts),
+        df_filtrado["X"].min():df_filtrado["X"].max():npts * 1j,
+        df_filtrado["Y"].min():df_filtrado["Y"].max():npts * 1j,
+        df_filtrado["Z"].min():df_filtrado["Z"].max():npts * 1j,
     ]
     grid_values = griddata(
         (df_filtrado["X"], df_filtrado["Y"], df_filtrado["Z"]),
@@ -160,7 +163,7 @@ if mostrar_volumen:
             y=grid_y.flatten(),
             z=grid_z.flatten(),
             value=grid_values.flatten(),
-            isomin=df_filtrado[ley_a_visualizar].mean(),  # Valor mínimo de la isosuperficie
+            isomin=df_filtrado[ley_a_visualizar].min(),  # Valor mínimo de la isosuperficie
             isomax=df_filtrado[ley_a_visualizar].max(),  # Valor máximo de la isosuperficie
             surface_dict=dict(count=5, fill=0.7),  # Controla la densidad y transparencia
             colorscale="Viridis",
@@ -194,7 +197,7 @@ fig.update_layout(
         xaxis_title="Este (m)",
         yaxis_title="Norte (m)",
         zaxis_title="Elevación (m)",
-        aspectmode="data"  # Ajusta la relación de aspecto
+        aspectmode='data'
     ),
     legend=dict(x=0.85, y=0.9, bgcolor="rgba(255,255,255,0.5)"),
     width=800,
