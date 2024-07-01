@@ -114,7 +114,6 @@ def cargar_datos():
 df_sondajes_3d = cargar_datos()
 
 # --- Interfaz de usuario de Streamlit ---
-# Página sin set_page_config(), evitando errores
 st.title("Dashboard de Exploración de Pórfido Cu-Au-Mo")
 
 # --- Menú de Navegación en la Parte Superior ---
