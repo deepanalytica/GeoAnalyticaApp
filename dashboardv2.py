@@ -114,6 +114,12 @@ def cargar_datos():
 df_sondajes_3d = cargar_datos()
 
 # --- Interfaz de usuario de Streamlit ---
+st.set_page_config(
+    page_title="Dashboard de Exploración de Pórfido Cu-Au-Mo",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 st.title("Dashboard de Exploración de Pórfido Cu-Au-Mo")
 
 # --- Menú de Navegación en la Parte Superior ---
@@ -127,10 +133,12 @@ st.markdown(
         display: flex;
         justify-content: center;
         gap: 15px;
+        border-radius: 10px;
     }
     .navbar a {
         color: white;
         text-decoration: none;
+        font-size: 18px;
     }
     .navbar a:hover {
         text-decoration: underline;
@@ -158,7 +166,7 @@ df_filtrado = df_sondajes_3d[(df_sondajes_3d["Profundidad"] >= profundidad_min) 
 # --- Diseño en 2x2 ---
 st.markdown("<hr>", unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
+col1, col2 = st.columns(2, gap="large")
 
 with col1:
     st.header("Visualización de Sondajes 3D")
@@ -167,19 +175,16 @@ with col1:
     mostrar_volumen = st.checkbox("Mostrar Volumen 3D", value=True)
     mostrar_alteracion = st.checkbox("Mostrar Alteración", value=True)
 
-    # --- Visualización de Sondajes 3D ---
     fig_3d = go.Figure()
     if mostrar_sondajes:
-        for i in range(len(df_filtrado)):
-            sondaje = df_filtrado.iloc[i]
-            x = [sondaje["X"]]
-            y = [sondaje["Y"]"]
-            z = [sondaje["Z"]"]
+        for i, sondaje in df_filtrado.groupby("Sondaje"):
+            x = [sondaje["X"].values[0]]
+            y = [sondaje["Y"].values[0]]
+            z = [sondaje["Z"].values[0]]
             fig_3d.add_trace(
-                go.Scatter3d(x=x, y=y, z=z, mode="markers", name=f"Sondaje {sondaje['Sondaje']}")
+                go.Scatter3d(x=x, y=y, z=z, mode="markers", name=f"Sondaje {sondaje['Sondaje'].values[0]}")
             )
 
-    # Volumen 3D
     if mostrar_volumen:
         grid_x, grid_y, grid_z = np.meshgrid(
             np.linspace(df_filtrado["X"].min(), df_filtrado["X"].max(), NPTS),
@@ -209,7 +214,6 @@ with col1:
                 )
             )
 
-    # Alteración
     if mostrar_alteracion:
         for alteracion_tipo in ["Sílice", "Potásica"]:
             df_alteracion = df_filtrado[df_filtrado["Alteración"] == alteracion_tipo]
@@ -265,7 +269,7 @@ with col2:
     st.plotly_chart(fig_dispersion)
 
 # --- Fila 2 ---
-col3, col4 = st.columns(2)
+col3, col4 = st.columns(2, gap="large")
 
 with col3:
     st.header("Gráfico de Líneas y Telaraña")
@@ -275,7 +279,6 @@ with col3:
     )
 
     if visualizacion_seleccionada == "Gráfico de Líneas":
-        # Generar datos de ejemplo
         x = np.arange(1, 21)
         y1 = np.sin(x / 2)
         y2 = np.cos(x / 2)
@@ -345,3 +348,4 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
