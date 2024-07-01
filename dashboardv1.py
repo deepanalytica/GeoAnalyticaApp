@@ -157,20 +157,21 @@ if mostrar_volumen:
         method="linear",
     )
 
-    fig.add_trace(
-        go.Isosurface(
-            x=grid_x.flatten(),
-            y=grid_y.flatten(),
-            z=grid_z.flatten(),
-            value=grid_values.flatten(),
-            isomin=df_filtrado[ley_a_visualizar].min(),  # Valor mínimo de la isosuperficie
-            isomax=df_filtrado[ley_a_visualizar].max(),  # Valor máximo de la isosuperficie
-            surface_dict=dict(count=5, fill=0.7),  # Controla la densidad y transparencia
-            colorscale="Viridis",
-            showscale=False,
-            opacity=0.3,  # Transparencia de la isosuperficie
+    if grid_values is not None:  # Verifica que la interpolación fue exitosa
+        fig.add_trace(
+            go.Isosurface(
+                x=grid_x.flatten(),
+                y=grid_y.flatten(),
+                z=grid_z.flatten(),
+                value=grid_values.flatten(),
+                isomin=df_filtrado[ley_a_visualizar].min(),  # Valor mínimo de la isosuperficie
+                isomax=df_filtrado[ley_a_visualizar].max(),  # Valor máximo de la isosuperficie
+                surface_count=5,  # Controla la densidad de las superficies
+                colorscale="Viridis",
+                showscale=False,
+                opacity=0.3,  # Transparencia de la isosuperficie
+            )
         )
-    )
 
 # Alteración
 if mostrar_alteracion:
@@ -206,3 +207,4 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig)
+
