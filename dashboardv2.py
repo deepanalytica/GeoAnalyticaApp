@@ -99,7 +99,7 @@ def clustering_geoquimico(df):
     df['Cluster'] = kmeans.labels_
     return df
 
-# --- Generar datos (una sola vez) ---
+# --- Cargar datos usando la función cacheada ---
 @st.cache_data
 def cargar_datos():
     """Genera y almacena en caché los datos de los sondajes."""
@@ -110,16 +110,16 @@ def cargar_datos():
     df_sondajes_3d = clustering_geoquimico(df_sondajes_3d)
     return df_sondajes_3d
 
-# --- Cargar datos usando la función cacheada ---
 df_sondajes_3d = cargar_datos()
 
-# --- Interfaz de usuario de Streamlit ---
+# --- Configuración de la Página ---
 st.set_page_config(
     page_title="Dashboard de Exploración de Pórfido Cu-Au-Mo",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+# --- Interfaz de usuario de Streamlit ---
 st.title("Dashboard de Exploración de Pórfido Cu-Au-Mo")
 
 # --- Menú de Navegación en la Parte Superior ---
@@ -328,7 +328,7 @@ with col3:
 with col4:
     st.header("Tesselación Wavelet")
     ley_wavelet = st.selectbox("Seleccionar Ley para Tesselación Wavelet:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
-    x, ley_original, ley_reconstruida = calcular_wavelet_transform(df_sondajes_3d[df_sondajes_3d["Cu (%)"] > 0])
+    x, ley_original, ley_reconstruida = calcular_wavelet_transform(df_sondajes_3d[df_sondajes_3d[ley_wavelet] > 0])
 
     fig_wavelet = go.Figure()
     fig_wavelet.add_trace(
@@ -357,3 +357,4 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
