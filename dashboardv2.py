@@ -11,6 +11,7 @@ NUM_SONDAJES = 20
 PROFUNDIDAD_SONDAJE = 200  # Metros
 LEY_MEDIA = {"Cu": 0.7, "Au": 0.2, "Mo": 0.01}  # %Cu, g/t Au, % Mo
 DESVIACION_ESTANDAR = {"Cu": 0.4, "Au": 0.1, "Mo": 0.005}
+NPTS = 50  # Número de puntos para el grid en la visualización 3D
 
 # --- Datos de los Sondajes (Ajustables) ---
 datos_sondajes = {
@@ -154,9 +155,9 @@ with col1:
     # Volumen 3D (Isosuperficie)
     if mostrar_volumen:
         grid_x, grid_y, grid_z = np.mgrid[
-            df_filtrado["X"].min():df_filtrado["X"].max():npts * 1j,
-            df_filtrado["Y"].min():df_filtrado["Y"].max():npts * 1j,
-            df_filtrado["Z"].min():df_filtrado["Z"].max():npts * 1j,
+            df_filtrado["X"].min():df_filtrado["X"].max():NPTS * 1j,
+            df_filtrado["Y"].min():df_filtrado["Y"].max():NPTS * 1j,
+            df_filtrado["Z"].min():df_filtrado["Z"].max():NPTS * 1j,
         ]
         grid_values = griddata(
             (df_filtrado["X"], df_filtrado["Y"], df_filtrado["Z"]),
