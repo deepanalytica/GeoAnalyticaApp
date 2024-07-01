@@ -201,7 +201,3 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig)
-
-        st.info(
-            "Carga un archivo para visualizar la teselación wavelet y otros gráficos."
-        )
