@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from scipy.interpolate import griddata
-import plotly.express as px
+from plotly.subplots import make_subplots
 
 # --- Parámetros de la Simulación (Ajustables) ---
 NUM_SONDAJES = 20
@@ -105,7 +105,8 @@ st.sidebar.title("Visualización de Sondajes 3D")
 # --- Opciones de visualización ---
 st.sidebar.header("Opciones de Visualización")
 ley_a_visualizar = st.sidebar.selectbox("Seleccionar Ley Mineral:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
-mostrar_volumen = st.sidebar.checkbox("Mostrar Volumen 3D", value=False)
+mostrar_sondajes = st.sidebar.checkbox("Mostrar Sondajes", value=True)
+mostrar_volumen = st.sidebar.checkbox("Mostrar Volumen 3D", value=True)
 mostrar_alteracion = st.sidebar.checkbox("Mostrar Alteración", value=True)
 
 # --- Filtros ---
@@ -120,25 +121,51 @@ st.title("Visualización 3D de Sondajes - Pórfido Cu-Au-Mo")
 # --- Gráfico 3D ---
 fig = go.Figure()
 
-# Sondajes
-for sondaje in df_filtrado["Sondaje"].unique():
-    df_sondaje = df_filtrado[df_filtrado["Sondaje"] == sondaje]
+# Sondajes (cilindros)
+if mostrar_sondajes:
+    for i in range(len(df_sondajes)):
+        sondaje = df_sondajes.iloc[i]
+        df_sondaje = df_filtrado[df_filtrado["Sondaje"] == sondaje["Sondaje"]]
+        fig.add_trace(
+            go.Scatter3d(
+                x=df_sondaje["X"],
+                y=df_sondaje["Y"],
+                z=df_sondaje["Z"],
+                mode="lines",
+                line=dict(width=10, color="grey"),  # Cilindro con línea gruesa
+                name=sondaje["Sondaje"],
+                showlegend=False,
+            )
+        )
+
+# Volumen 3D (Isosuperficie)
+if mostrar_volumen:
+    # Interpolación para la isosuperficie
+    npts = 50  # Aumentar para mayor resolución
+    grid_x, grid_y, grid_z = np.mgrid[
+        df_filtrado["X"].min() : df_filtrado["X"].max() : complex(npts),
+        df_filtrado["Y"].min() : df_filtrado["Y"].max() : complex(npts),
+        df_filtrado["Z"].min() : df_filtrado["Z"].max() : complex(npts),
+    ]
+    grid_values = griddata(
+        (df_filtrado["X"], df_filtrado["Y"], df_filtrado["Z"]),
+        df_filtrado[ley_a_visualizar],
+        (grid_x, grid_y, grid_z),
+        method="linear",
+    )
+
     fig.add_trace(
-        go.Scatter3d(
-            x=df_sondaje["X"],
-            y=df_sondaje["Y"],
-            z=df_sondaje["Z"],
-            mode="lines+markers",
-            name=sondaje,
-            marker=dict(
-                size=4,
-                color=df_sondaje[ley_a_visualizar],
-                colorscale="Viridis",
-                colorbar=dict(title=ley_a_visualizar, x=1.1, len=0.8),
-                cmin=df_filtrado[ley_a_visualizar].min(),
-                cmax=df_filtrado[ley_a_visualizar].max(),
-            ),
-            line=dict(width=2),
+        go.Isosurface(
+            x=grid_x.flatten(),
+            y=grid_y.flatten(),
+            z=grid_z.flatten(),
+            value=grid_values.flatten(),
+            isomin=df_filtrado[ley_a_visualizar].mean(),  # Valor mínimo de la isosuperficie
+            isomax=df_filtrado[ley_a_visualizar].max(),  # Valor máximo de la isosuperficie
+            surface_dict=dict(count=5, fill=0.7),  # Controla la densidad y transparencia
+            colorscale="Viridis",
+            showscale=False,
+            opacity=0.3,  # Transparencia de la isosuperficie
         )
     )
 
@@ -161,40 +188,15 @@ if mostrar_alteracion:
             )
         )
 
-# Teselación Wavelet
-# Selección de puntos de interpolación
-npts = 100
-grid_x, grid_y = np.mgrid[
-    df_filtrado["X"].min() : df_filtrado["X"].max() : complex(npts),
-    df_filtrado["Y"].min() : df_filtrado["Y"].max() : complex(npts),
-]
-grid_z = griddata(
-    (df_filtrado["X"], df_filtrado["Y"]),
-    df_filtrado[ley_a_visualizar],
-    (grid_x, grid_y),
-    method="cubic",
-)
-
-fig.add_trace(
-    go.Surface(
-        x=grid_x,
-        y=grid_y,
-        z=grid_z,
-        colorscale="Viridis",
-        showscale=False,
-        opacity=0.6,
-    )
-)
-
+# Configuración del gráfico
 fig.update_layout(
     scene=dict(
         xaxis_title="Este (m)",
         yaxis_title="Norte (m)",
         zaxis_title="Elevación (m)",
+        aspectmode="data"  # Ajusta la relación de aspecto
     ),
-    legend=dict(
-        x=0.85, y=0.9, bgcolor="rgba(255,255,255,0.5)"
-    ),
+    legend=dict(x=0.85, y=0.9, bgcolor="rgba(255,255,255,0.5)"),
     width=800,
     height=800,
     margin=dict(r=20, l=10, b=10, t=10),
