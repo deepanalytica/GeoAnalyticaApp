@@ -114,24 +114,63 @@ def cargar_datos():
 df_sondajes_3d = cargar_datos()
 
 # --- Interfaz de usuario de Streamlit ---
+st.set_page_config(
+    page_title="Dashboard de Exploración de Pórfido Cu-Au-Mo",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# --- Menú de Navegación en la Parte Superior ---
+st.markdown(
+    """
+    <style>
+    .navbar {
+        background-color: #2E3A59;
+        padding: 10px;
+        color: white;
+    }
+    .navbar a {
+        color: white;
+        text-decoration: none;
+        margin: 0 15px;
+    }
+    .navbar a:hover {
+        text-decoration: underline;
+    }
+    </style>
+    <div class="navbar">
+        <a href="#">Inicio</a>
+        <a href="#sondajes">Sondajes</a>
+        <a href="#dispersio">Dispersión</a>
+        <a href="#lineas_telaraña">Líneas y Telaraña</a>
+        <a href="#wavelet">Wavelet</a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.title("Dashboard de Exploración de Pórfido Cu-Au-Mo")
 
+# --- Filtros ---
+st.sidebar.header("Filtros")
+profundidad_min = st.sidebar.slider("Profundidad Mínima (m)", min_value=0, max_value=PROFUNDIDAD_SONDAJE, value=0)
+profundidad_max = st.sidebar.slider("Profundidad Máxima (m)", min_value=0, max_value=PROFUNDIDAD_SONDAJE, value=PROFUNDIDAD_SONDAJE)
+
+df_filtrado = df_sondajes_3d[(df_sondajes_3d["Profundidad"] >= profundidad_min) & (
+        df_sondajes_3d["Profundidad"] <= profundidad_max)]
+
 # --- Diseño en 2x2 ---
+st.markdown("<hr>", unsafe_allow_html=True)
+
 col1, col2 = st.columns(2)
+
 with col1:
     st.header("Visualización de Sondajes 3D")
     ley_a_visualizar = st.selectbox("Seleccionar Ley Mineral:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
     mostrar_sondajes = st.checkbox("Mostrar Sondajes", value=True)
     mostrar_volumen = st.checkbox("Mostrar Volumen 3D", value=True)
     mostrar_alteracion = st.checkbox("Mostrar Alteración", value=True)
-    
-    # Filtros
-    st.sidebar.header("Filtros")
-    profundidad_min = st.sidebar.slider("Profundidad Mínima (m)", min_value=0, max_value=PROFUNDIDAD_SONDAJE, value=0)
-    profundidad_max = st.sidebar.slider("Profundidad Máxima (m)", min_value=0, max_value=PROFUNDIDAD_SONDAJE, value=PROFUNDIDAD_SONDAJE)
-    df_filtrado = df_sondajes_3d[(df_sondajes_3d["Profundidad"] >= profundidad_min) & (
-            df_sondajes_3d["Profundidad"] <= profundidad_max)]
-    
+
     # --- Visualización 3D ---
     fig_3d = go.Figure()
 
@@ -139,33 +178,27 @@ with col1:
     if mostrar_sondajes:
         for i in range(len(df_sondajes)):
             sondaje = df_sondajes.iloc[i]
-            df_sondaje = df_filtrado[df_filtrado["Sondaje"] == sondaje["Sondaje"]]
+            x = [sondaje["Este (m)"]]
+            y = [sondaje["Norte (m)"]]
+            z = [sondaje["Elevación (m)"]]
             fig_3d.add_trace(
-                go.Scatter3d(
-                    x=df_sondaje["X"],
-                    y=df_sondaje["Y"],
-                    z=df_sondaje["Z"],
-                    mode="lines",
-                    line=dict(width=10, color="grey"),  # Cilindro con línea gruesa
-                    name=sondaje["Sondaje"],
-                    showlegend=False,
-                )
+                go.Scatter3d(x=x, y=y, z=z, mode="markers", name=f"Sondaje {sondaje['Sondaje']}")
             )
 
-    # Volumen 3D (Isosuperficie)
+    # Volumen 3D
     if mostrar_volumen:
-        grid_x, grid_y, grid_z = np.mgrid[
-            df_filtrado["X"].min():df_filtrado["X"].max():NPTS * 1j,
-            df_filtrado["Y"].min():df_filtrado["Y"].max():NPTS * 1j,
-            df_filtrado["Z"].min():df_filtrado["Z"].max():NPTS * 1j,
-        ]
+        grid_x, grid_y, grid_z = np.meshgrid(
+            np.linspace(df_filtrado["X"].min(), df_filtrado["X"].max(), NPTS),
+            np.linspace(df_filtrado["Y"].min(), df_filtrado["Y"].max(), NPTS),
+            np.linspace(df_filtrado["Z"].min(), df_filtrado["Z"].max(), NPTS),
+            indexing='ij'
+        )
         grid_values = griddata(
             (df_filtrado["X"], df_filtrado["Y"], df_filtrado["Z"]),
             df_filtrado[ley_a_visualizar],
             (grid_x, grid_y, grid_z),
             method="linear",
         )
-
         if grid_values is not None:
             fig_3d.add_trace(
                 go.Isosurface(
@@ -194,7 +227,7 @@ with col1:
                     mode="markers",
                     name=alteracion_tipo,
                     marker=dict(
-                        size=3,
+                        size=6,
                         symbol="diamond-open",
                         color="orange" if alteracion_tipo == "Potásica" else "blue",
                     ),
@@ -209,8 +242,8 @@ with col1:
             aspectmode='data'
         ),
         legend=dict(x=0.85, y=0.9, bgcolor="rgba(255,255,255,0.5)"),
-        width=400,
-        height=400,
+        width=500,
+        height=500,
         margin=dict(r=20, l=10, b=10, t=10),
     )
     st.plotly_chart(fig_3d)
@@ -223,7 +256,7 @@ with col2:
             x=df_sondajes_3d["Cu (%)"],
             y=df_sondajes_3d["Au (g/t)"],
             mode="markers",
-            marker=dict(size=6, color=df_sondajes_3d["Cluster"], colorscale="Viridis"),
+            marker=dict(size=8, color=df_sondajes_3d["Cluster"], colorscale="Viridis", showscale=True),
             text=df_sondajes_3d["Sondaje"],
         )
     )
@@ -231,8 +264,8 @@ with col2:
         xaxis_title="Ley de Cu (%)",
         yaxis_title="Ley de Au (g/t)",
         title="Dispersión de Cu vs Au",
-        width=400,
-        height=400,
+        width=500,
+        height=500,
         margin=dict(r=10, l=10, b=10, t=30),
     )
     st.plotly_chart(fig_dispersion)
@@ -259,8 +292,8 @@ with col3:
             title="Gráfico de Líneas",
             xaxis_title="X",
             yaxis_title="Y",
-            width=400,
-            height=400,
+            width=500,
+            height=500,
             margin=dict(r=10, l=10, b=10, t=30),
         )
         st.plotly_chart(fig_lineas)
@@ -280,8 +313,8 @@ with col3:
                 radialaxis=dict(visible=True, range=[0, max(valores) + 0.5])
             ),
             title="Gráfico de Telaraña",
-            width=400,
-            height=400,
+            width=500,
+            height=500,
             margin=dict(r=10, l=10, b=10, t=30),
         )
         st.plotly_chart(fig_telaraña)
@@ -301,8 +334,19 @@ with col4:
         title="Tesselación Wavelet de Ley de Cu (%)",
         xaxis_title="Índice",
         yaxis_title="Ley de Cu (%)",
-        width=400,
-        height=400,
+        width=500,
+        height=500,
         margin=dict(r=10, l=10, b=10, t=30),
     )
     st.plotly_chart(fig_wavelet)
+
+# Footer opcional para más información
+st.markdown(
+    """
+    <hr>
+    <footer style="text-align: center; padding: 10px; background-color: #2E3A59; color: white;">
+        <p>Desarrollado por tu nombre o tu empresa. Todos los derechos reservados.</p>
+    </footer>
+    """,
+    unsafe_allow_html=True,
+)
