@@ -114,12 +114,6 @@ def cargar_datos():
 df_sondajes_3d = cargar_datos()
 
 # --- Interfaz de usuario de Streamlit ---
-st.set_page_config(
-    page_title="Dashboard de Exploración de Pórfido Cu-Au-Mo",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
 st.title("Dashboard de Exploración de Pórfido Cu-Au-Mo")
 
 # --- Menú de Navegación en la Parte Superior ---
@@ -244,7 +238,7 @@ with col1:
         height=500,
         margin=dict(r=20, l=10, b=10, t=10),
     )
-    st.plotly_chart(fig_3d)
+    st.plotly_chart(fig_3d, use_container_width=True)
 
 with col2:
     st.header("Gráfico de Dispersión Cu vs Au")
@@ -266,7 +260,7 @@ with col2:
         height=500,
         margin=dict(r=10, l=10, b=10, t=30),
     )
-    st.plotly_chart(fig_dispersion)
+    st.plotly_chart(fig_dispersion, use_container_width=True)
 
 # --- Fila 2 ---
 col3, col4 = st.columns(2, gap="large")
@@ -294,7 +288,7 @@ with col3:
             height=500,
             margin=dict(r=10, l=10, b=10, t=30),
         )
-        st.plotly_chart(fig_lineas)
+        st.plotly_chart(fig_lineas, use_container_width=True)
     
     elif visualizacion_seleccionada == "Gráfico de Telaraña":
         fig_telaraña = go.Figure()
@@ -315,7 +309,7 @@ with col3:
             height=500,
             margin=dict(r=10, l=10, b=10, t=30),
         )
-        st.plotly_chart(fig_telaraña)
+        st.plotly_chart(fig_telaraña, use_container_width=True)
 
 with col4:
     st.header("Gráfico de Tesselación Wavelet")
@@ -336,7 +330,7 @@ with col4:
         height=500,
         margin=dict(r=10, l=10, b=10, t=30),
     )
-    st.plotly_chart(fig_wavelet)
+    st.plotly_chart(fig_wavelet, use_container_width=True)
 
 # Footer opcional para más información
 st.markdown(
@@ -348,4 +342,3 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
