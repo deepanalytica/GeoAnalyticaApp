@@ -20,7 +20,7 @@ st.set_page_config(
 @st.cache_data
 def cargar_datos(archivo_cargado):
     """
-    Carga los datos del archivo Excel o CSV. 
+    Carga los datos del archivo Excel o CSV.
     Asegura que las columnas numéricas se carguen correctamente
     y maneja posibles errores durante la carga.
     """
@@ -44,7 +44,10 @@ def cargar_datos(archivo_cargado):
                 "Este",
                 "Norte",
                 "Elevación",
-                "Elemento",
+                "Au (g/t)",
+                "Ag (g/t)",
+                "Cu (%)",
+                "Mo (%)"
             ]  
             df[columnas_numericas] = df[columnas_numericas].apply(
                 pd.to_numeric, errors="coerce"
@@ -69,13 +72,17 @@ if archivo_cargado:
 
     if df is not None:
         elemento_x = st.sidebar.selectbox(
-            "Elemento X (Eje X):", df.columns
+            "Elemento X (Eje X):",
+            df.columns,
+            index=df.columns.get_loc("Au (g/t)"),
         )
         elemento_y = st.sidebar.selectbox(
-            "Elemento Y (Eje Y):", df.columns
+            "Elemento Y (Eje Y):",
+            df.columns,
+            index=df.columns.get_loc("Ag (g/t)"),
         )
 
-        # Filtro para la visualización 3D
+        # Filtro para la visualización 3D 
         valor_minimo = st.sidebar.slider(
             f"Filtrar valores mínimos de {elemento_x}:",
             float(df[elemento_x].min()),
@@ -84,7 +91,7 @@ if archivo_cargado:
         )
         df_filtrado = df[df[elemento_x] >= valor_minimo]
     else:
-        df_filtrado = pd.DataFrame() 
+        df_filtrado = pd.DataFrame()
 
 # ------------------------------------------------------------------------
 #                             CONTENIDO PRINCIPAL
@@ -134,7 +141,7 @@ with col1:
                 marker=dict(
                     size=4,
                     color=colores_puntos,
-                    symbol=simbolos_puntos,  # color=df_filtrado['Elemento']
+                    symbol=simbolos_puntos,
                 ),
                 text=[
                     f"Profundidad: {row['Elevación']}<br>{elemento_x}: {row[elemento_x]}<br>Litología: {row['Litologia']}"
@@ -153,7 +160,7 @@ with col1:
                 zaxis_title="Elevación (m)",
             ),
             margin=dict(l=0, r=0, b=0, t=0),
-            showlegend=False,  # Ocultar la leyenda por ahora
+            showlegend=False,  
         )
         st.plotly_chart(fig_3d)
     else:
@@ -204,26 +211,32 @@ with col3:
 
         # Seleccionar columna para la teselación wavelet
         columna_wavelet = st.selectbox(
-            "Seleccionar columna para Wavelet:", df.columns
-        )
+            "Seleccionar columna para Wavelet:",
+            df_filtrado.columns,
+            index=df_filtrado.columns.get_loc("Au (g/t)"))
 
         # Aplicar transformada wavelet (ejemplo básico)
-        signal = df_filtrado[columna_wavelet].values
-        coeffs = pywt.dwt(signal, "db4")
-        cA, cD = coeffs
+        if columna_wavelet in df_filtrado.columns:
+            signal = df_filtrado[columna_wavelet].values
+            coeffs = pywt.dwt(signal, "db4")
+            cA, cD = coeffs
 
-        # Crear gráfico de la teselación wavelet
-        fig_wavelet = make_subplots(rows=2, cols=1)
-        fig_wavelet.add_trace(
-            go.Scatter(y=cA, mode="lines", name="Aproximación"),
-            row=1,
-            col=1,
-        )
-        fig_wavelet.add_trace(
-            go.Scatter(y=cD, mode="lines", name="Detalle"), row=2, col=1
-        )
-        fig_wavelet.update_layout(height=400)
-        st.plotly_chart(fig_wavelet)
+            # Crear gráfico de la teselación wavelet
+            fig_wavelet = make_subplots(rows=2, cols=1)
+            fig_wavelet.add_trace(
+                go.Scatter(y=cA, mode="lines", name="Aproximación"),
+                row=1,
+                col=1,
+            )
+            fig_wavelet.add_trace(
+                go.Scatter(y=cD, mode="lines", name="Detalle"),
+                row=2,
+                col=1,
+            )
+            fig_wavelet.update_layout(height=400)
+            st.plotly_chart(fig_wavelet)
+        else: 
+            st.warning("La columna seleccionada no es válida para la teselación Wavelet.")
 
         # ----------------------------------------------------------------
         #                  GRÁFICOS INTERACTIVOS Y DINÁMICOS
