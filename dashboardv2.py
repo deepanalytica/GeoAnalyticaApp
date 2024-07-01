@@ -114,11 +114,8 @@ def cargar_datos():
 df_sondajes_3d = cargar_datos()
 
 # --- Interfaz de usuario de Streamlit ---
-st.set_page_config(
-    page_title="Dashboard de Exploración de Pórfido Cu-Au-Mo",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# Página sin set_page_config(), evitando errores
+st.title("Dashboard de Exploración de Pórfido Cu-Au-Mo")
 
 # --- Menú de Navegación en la Parte Superior ---
 st.markdown(
@@ -128,18 +125,20 @@ st.markdown(
         background-color: #2E3A59;
         padding: 10px;
         color: white;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
     }
     .navbar a {
         color: white;
         text-decoration: none;
-        margin: 0 15px;
     }
     .navbar a:hover {
         text-decoration: underline;
     }
     </style>
     <div class="navbar">
-        <a href="#">Inicio</a>
+        <a href="#sondajes">Inicio</a>
         <a href="#sondajes">Sondajes</a>
         <a href="#dispersio">Dispersión</a>
         <a href="#lineas_telaraña">Líneas y Telaraña</a>
@@ -148,8 +147,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-st.title("Dashboard de Exploración de Pórfido Cu-Au-Mo")
 
 # --- Filtros ---
 st.sidebar.header("Filtros")
@@ -171,16 +168,14 @@ with col1:
     mostrar_volumen = st.checkbox("Mostrar Volumen 3D", value=True)
     mostrar_alteracion = st.checkbox("Mostrar Alteración", value=True)
 
-    # --- Visualización 3D ---
+    # --- Visualización de Sondajes 3D ---
     fig_3d = go.Figure()
-
-    # Sondajes (cilindros)
     if mostrar_sondajes:
-        for i in range(len(df_sondajes)):
-            sondaje = df_sondajes.iloc[i]
-            x = [sondaje["Este (m)"]]
-            y = [sondaje["Norte (m)"]]
-            z = [sondaje["Elevación (m)"]]
+        for i in range(len(df_filtrado)):
+            sondaje = df_filtrado.iloc[i]
+            x = [sondaje["X"]]
+            y = [sondaje["Y"]"]
+            z = [sondaje["Z"]"]
             fig_3d.add_trace(
                 go.Scatter3d(x=x, y=y, z=z, mode="markers", name=f"Sondaje {sondaje['Sondaje']}")
             )
@@ -272,6 +267,7 @@ with col2:
 
 # --- Fila 2 ---
 col3, col4 = st.columns(2)
+
 with col3:
     st.header("Gráfico de Líneas y Telaraña")
     visualizacion_seleccionada = st.selectbox(
