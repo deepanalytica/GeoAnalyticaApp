@@ -114,6 +114,12 @@ def cargar_datos():
 df_sondajes_3d = cargar_datos()
 
 # --- Interfaz de usuario de Streamlit ---
+st.set_page_config(
+    page_title="Dashboard de Exploración de Pórfido Cu-Au-Mo",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 st.title("Dashboard de Exploración de Pórfido Cu-Au-Mo")
 
 # --- Menú de Navegación en la Parte Superior ---
@@ -166,17 +172,25 @@ with col1:
     st.header("Visualización de Sondajes 3D")
     ley_a_visualizar = st.selectbox("Seleccionar Ley Mineral:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
     mostrar_sondajes = st.checkbox("Mostrar Sondajes", value=True)
-    mostrar_volumen = st.checkbox("Mostrar Volumen 3D", value=True)
-    mostrar_alteracion = st.checkbox("Mostrar Alteración", value=True)
+    mostrar_volumen = st.checkbox("Mostrar Volumen de Ley", value=True)
+    mostrar_alteracion = st.checkbox("Mostrar Alteraciones", value=True)
 
     fig_3d = go.Figure()
+
     if mostrar_sondajes:
         for i, sondaje in df_filtrado.groupby("Sondaje"):
             x = [sondaje["X"].values[0]]
             y = [sondaje["Y"].values[0]]
             z = [sondaje["Z"].values[0]]
             fig_3d.add_trace(
-                go.Scatter3d(x=x, y=y, z=z, mode="markers", name=f"Sondaje {sondaje['Sondaje'].values[0]}")
+                go.Scatter3d(
+                    x=x,
+                    y=y,
+                    z=z,
+                    mode="markers",
+                    name=f"Sondaje {sondaje['Sondaje'].values[0]}",
+                    marker=dict(size=8, color="red"),
+                )
             )
 
     if mostrar_volumen:
@@ -241,11 +255,12 @@ with col1:
     st.plotly_chart(fig_3d, use_container_width=True)
 
 with col2:
-    st.header("Gráfico de Dispersión Cu vs Au")
+    st.header("Gráfico de Dispersión")
+    ley_dispersar = st.selectbox("Seleccionar Ley para Dispersión:", ["Cu (%)", "Au (g/t)"])
     fig_dispersion = go.Figure()
     fig_dispersion.add_trace(
         go.Scatter(
-            x=df_sondajes_3d["Cu (%)"],
+            x=df_sondajes_3d[ley_dispersar],
             y=df_sondajes_3d["Au (g/t)"],
             mode="markers",
             marker=dict(size=8, color=df_sondajes_3d["Cluster"], colorscale="Viridis", showscale=True),
@@ -253,9 +268,9 @@ with col2:
         )
     )
     fig_dispersion.update_layout(
-        xaxis_title="Ley de Cu (%)",
+        xaxis_title=f"Ley de {ley_dispersar}",
         yaxis_title="Ley de Au (g/t)",
-        title="Dispersión de Cu vs Au",
+        title="Dispersión de Leyes",
         width=500,
         height=500,
         margin=dict(r=10, l=10, b=10, t=30),
@@ -273,17 +288,16 @@ with col3:
     )
 
     if visualizacion_seleccionada == "Gráfico de Líneas":
-        x = np.arange(1, 21)
-        y1 = np.sin(x / 2)
-        y2 = np.cos(x / 2)
+        ley_lineas = st.selectbox("Seleccionar Ley para Gráfico de Líneas:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
+        x = np.arange(1, len(df_sondajes_3d["Sondaje"].unique()) + 1)
+        y = df_sondajes_3d.groupby("Sondaje")[ley_lineas].mean().values
 
         fig_lineas = go.Figure()
-        fig_lineas.add_trace(go.Scatter(x=x, y=y1, mode='lines+markers', name='Seno'))
-        fig_lineas.add_trace(go.Scatter(x=x, y=y2, mode='lines+markers', name='Coseno'))
+        fig_lineas.add_trace(go.Scatter(x=x, y=y, mode='lines+markers', name=f'Ley de {ley_lineas}'))
         fig_lineas.update_layout(
-            title="Gráfico de Líneas",
-            xaxis_title="X",
-            yaxis_title="Y",
+            title=f"Gráfico de Líneas para Ley de {ley_lineas}",
+            xaxis_title="Sondaje",
+            yaxis_title=f"Ley de {ley_lineas}",
             width=500,
             height=500,
             margin=dict(r=10, l=10, b=10, t=30),
@@ -291,9 +305,9 @@ with col3:
         st.plotly_chart(fig_lineas, use_container_width=True)
     
     elif visualizacion_seleccionada == "Gráfico de Telaraña":
-        fig_telaraña = go.Figure()
         categorias = ['Cu (%)', 'Au (g/t)', 'Mo (%)']
-        valores = [df_sondajes_3d['Cu (%)'].mean(), df_sondajes_3d['Au (g/t)'].mean(), df_sondajes_3d['Mo (%)'].mean()]
+        valores = [df_sondajes_3d[categoria].mean() for categoria in categorias]
+        fig_telaraña = go.Figure()
         fig_telaraña.add_trace(go.Scatterpolar(
             r=valores,
             theta=categorias,
@@ -312,20 +326,21 @@ with col3:
         st.plotly_chart(fig_telaraña, use_container_width=True)
 
 with col4:
-    st.header("Gráfico de Tesselación Wavelet")
-    x, y, reconstructed = calcular_wavelet_transform(df_sondajes_3d)
-    
+    st.header("Tesselación Wavelet")
+    ley_wavelet = st.selectbox("Seleccionar Ley para Tesselación Wavelet:", ["Cu (%)", "Au (g/t)", "Mo (%)"])
+    x, ley_original, ley_reconstruida = calcular_wavelet_transform(df_sondajes_3d[df_sondajes_3d["Cu (%)"] > 0])
+
     fig_wavelet = go.Figure()
     fig_wavelet.add_trace(
-        go.Scatter(x=x, y=y, mode='lines', name='Ley de Cu (%) Original')
+        go.Scatter(x=x, y=ley_original, mode='lines', name=f'Ley de {ley_wavelet} Original')
     )
     fig_wavelet.add_trace(
-        go.Scatter(x=x, y=reconstructed, mode='lines', name='Ley de Cu (%) Reconstruida')
+        go.Scatter(x=x, y=ley_reconstruida, mode='lines', name=f'Ley de {ley_wavelet} Reconstruida')
     )
     fig_wavelet.update_layout(
-        title="Tesselación Wavelet de Ley de Cu (%)",
+        title=f"Tesselación Wavelet de Ley de {ley_wavelet}",
         xaxis_title="Índice",
-        yaxis_title="Ley de Cu (%)",
+        yaxis_title=f"Ley de {ley_wavelet}",
         width=500,
         height=500,
         margin=dict(r=10, l=10, b=10, t=30),
