@@ -3,13 +3,14 @@ import cv2
 import numpy as np
 from PIL import Image
 import torch
+import os
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 
 # Función para cargar el modelo SAM
 @st.cache_resource
 def load_model():
     model_type = "vit_h"
-    checkpoint_url = "https://example.com/path/to/checkpoint"  # Reemplaza con la URL de tu checkpoint
+    checkpoint_url = "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth"  # Enlace directo al checkpoint
     checkpoint_path = "sam_vit_h_4b8939.pth"
     if not os.path.exists(checkpoint_path):
         # Descargar el checkpoint
