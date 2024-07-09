@@ -4,6 +4,10 @@ numpy
 matplotlib
 seaborn
 plotly
+streamlit
+opencv-python-headless
+pillow
+numpy
 scipy
 scikit-learn
 fpdf
