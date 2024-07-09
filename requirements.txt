@@ -4,10 +4,11 @@ numpy
 matplotlib
 seaborn
 plotly
-streamlit
+numpy
+torch
+git+https://github.com/facebookresearch/segment-anything.git
 opencv-python-headless
 pillow
-numpy
 scipy
 scikit-learn
 fpdf
