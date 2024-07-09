@@ -2,46 +2,59 @@ import streamlit as st
 import cv2
 import numpy as np
 from PIL import Image
+import torch
+from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 
-def eliminar_fondo(imagen):
-    # Convertir a escala de grises
-    gray = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
-    # Aplicar un umbral para binarizar la imagen
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    # Invertir la imagen
-    inverted_thresh = cv2.bitwise_not(thresh)
-    # Encontrar contornos
-    contours, _ = cv2.findContours(inverted_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    # Crear una máscara de fondo negro
-    mask = np.zeros_like(imagen)
-    # Dibujar los contornos en la máscara
-    cv2.drawContours(mask, contours, -1, (255, 255, 255), thickness=cv2.FILLED)
-    # Aplicar la máscara a la imagen original
-    result = cv2.bitwise_and(imagen, mask)
-    return result
+# Función para cargar el modelo SAM
+@st.cache_resource
+def load_model():
+    model_type = "vit_h"
+    checkpoint_url = "https://example.com/path/to/checkpoint"  # Reemplaza con la URL de tu checkpoint
+    checkpoint_path = "sam_vit_h_4b8939.pth"
+    if not os.path.exists(checkpoint_path):
+        # Descargar el checkpoint
+        import requests
+        response = requests.get(checkpoint_url)
+        with open(checkpoint_path, 'wb') as f:
+            f.write(response.content)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    sam = sam_model_registry[model_type](checkpoint=checkpoint_path)
+    sam.to(device=device)
+    mask_generator = SamAutomaticMaskGenerator(sam)
+    return mask_generator
 
-def clasificar_sondajes(imagen):
-    # Aquí deberíamos implementar la lógica para clasificar las fracturas, venillas, etc.
-    # Este es solo un ejemplo simple que no clasifica realmente, solo devuelve la imagen procesada
-    processed_image = eliminar_fondo(imagen)
-    return processed_image
+# Función para segmentar la imagen
+def segment_image(mask_generator, image):
+    masks = mask_generator.generate(image)
+    return masks
 
+# Función para dibujar las máscaras en la imagen
+def draw_masks(image, masks):
+    output_image = image.copy()
+    for mask in masks:
+        color = np.random.randint(0, 255, (3,)).tolist()
+        for segment in mask['segments']:
+            cv2.polylines(output_image, [np.array(segment).astype(np.int32)], isClosed=True, color=color, thickness=2)
+    return output_image
+
+# Función principal de la aplicación
 def main():
-    st.title("Clasificación de Sondajes Mineros")
-    
+    st.title("Clasificación de Sondajes Mineros con Segment Anything")
+
     uploaded_file = st.file_uploader("Sube una imagen de sondaje", type=["png", "jpg", "jpeg"])
-    
+
     if uploaded_file is not None:
-        # Convertir la imagen cargada a un formato que OpenCV pueda manejar
         image = Image.open(uploaded_file)
         image = np.array(image)
         
-        # Eliminar el fondo y clasificar la imagen
-        processed_image = clasificar_sondajes(image)
+        mask_generator = load_model()
+        masks = segment_image(mask_generator, image)
         
-        # Mostrar la imagen original y la procesada
+        segmented_image = draw_masks(image, masks)
+
         st.image(image, caption='Imagen Original', use_column_width=True)
-        st.image(processed_image, caption='Imagen Procesada', use_column_width=True)
+        st.image(segmented_image, caption='Imagen Segmentada', use_column_width=True)
 
 if __name__ == "__main__":
     main()
+
