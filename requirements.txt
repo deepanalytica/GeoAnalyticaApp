@@ -6,6 +6,7 @@ seaborn
 plotly
 numpy
 torch
+segment-anything
 torchvision
 git+https://github.com/facebookresearch/segment-anything.git
 opencv-python-headless
