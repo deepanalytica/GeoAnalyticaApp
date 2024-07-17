@@ -14,7 +14,7 @@ data = None
 gdf = None
 modelo = None
 
-# Funciones para cada sección del menú
+# --- Funciones para cada sección del menú ---
 
 def cargar_datos():
     """Permite al usuario cargar datos desde un archivo CSV, GeoJSON o Shapefile."""
@@ -31,27 +31,27 @@ def cargar_datos():
                 data = pd.DataFrame(gdf)
             else:
                 data = pd.read_csv(uploaded_file)
-                # Intentar convertir a GeoDataFrame (¡CORREGIDO!)
+                # Intentar convertir a GeoDataFrame 
                 try:
                     gdf = gpd.GeoDataFrame(
                         data, geometry=gpd.points_from_xy(data['Longitud'], data['Latitud'])
                     )
                 except:
                     st.warning(
-                        "No se encontraron columnas de coordenadas. Asegúrate de que tu archivo CSV tenga columnas nombradas como 'Longitud' y 'Latitud' si deseas visualizar los datos en un mapa."
+                        "No se encontraron columnas de coordenadas válidas. Asegúrate de que tu archivo CSV tenga columnas nombradas como 'Longitud' y 'Latitud' si deseas visualizar los datos en un mapa."
                     )
             st.success("Datos cargados con éxito!")
-            st.dataframe(data.head())
+            st.write(data.head()) # Mostrar solo una vista previa
         except Exception as e:
             st.error(f"Error al cargar: {e}")
 
-
 def analisis_exploratorio():
-    """Muestra estadísticas descriptivas e histogramas de las variables numéricas."""
+    """Muestra estadísticas descriptivas e histogramas."""
+    global data
     st.header("Análisis Exploratorio")
     if data is not None:
         st.subheader("Estadísticas Descriptivas")
-        st.dataframe(data.describe())
+        st.write(data.describe())
 
         st.subheader("Histogramas")
         columnas_numericas = data.select_dtypes(include=['number']).columns
@@ -59,11 +59,10 @@ def analisis_exploratorio():
             fig = px.histogram(data, x=col, nbins=30)
             st.plotly_chart(fig)
     else:
-        st.warning("Carga los datos primero.")
-
+        st.warning("Carga los datos primero en la sección 'Cargar Datos'.")
 
 def modelado():
-    """Permite al usuario aplicar clustering (KMeans) a los datos."""
+    """Permite aplicar clustering (KMeans) a los datos."""
     global data, modelo
     st.header("Modelado de Prospectividad")
     if data is not None:
@@ -79,19 +78,17 @@ def modelado():
                 escalar = st.checkbox("Estandarizar datos (recomendado)")
                 if escalar:
                     scaler = StandardScaler()
-                    data_procesada = scaler.fit_transform(
-                        data[columnas_seleccionadas]
-                    )
+                    data_procesada = scaler.fit_transform( data[columnas_seleccionadas])
                 else:
                     data_procesada = data[columnas_seleccionadas]
 
                 # Algoritmo de Clustering
                 st.subheader("Configuración del Modelo")
                 n_clusters = st.slider("Número de Clusters", 2, 10, 3)
-                algoritmo = st.selectbox(
-                    "Algoritmo de Clustering", ["KMeans"]
-                )  # Agregar más opciones
-
+                
+                # Puedes agregar más algoritmos aquí si lo deseas
+                algoritmo = st.selectbox("Algoritmo de Clustering", ["KMeans"])  
+                
                 if algoritmo == "KMeans":
                     modelo = KMeans(n_clusters=n_clusters, random_state=42)
                     modelo.fit(data_procesada)
@@ -111,41 +108,40 @@ def modelado():
         else:
             st.warning("No hay columnas numéricas en el conjunto de datos.")
     else:
-        st.warning("Carga los datos y asegúrate de tener variables numéricas.")
-
+        st.warning("Carga los datos primero en la sección 'Cargar Datos'.")
 
 def visualizacion():
-    """Muestra un mapa interactivo con los resultados del clustering."""
-    global gdf
+    """Muestra un mapa interactivo con los resultados."""
+    global gdf, modelo
     st.header("Visualización de Resultados")
     if gdf is not None and 'Cluster' in gdf.columns:
         st.subheader("Mapa de Clusters")
-        # Definir una paleta de colores para los clusters
+        # Paleta de colores 
         colores = [
             [255, 0, 0], [0, 255, 0], [0, 0, 255], 
             [255, 255, 0], [0, 255, 255], [255, 0, 255],
-            [128, 0, 0], [0, 128, 0], [0, 0, 128]  # Agrega más colores si necesitas más clusters
+            [128, 0, 0], [0, 128, 0], [0, 0, 128] 
         ]
 
-        # Capa de mapa base
+        # Capa base del mapa
         base_layer = pdk.Layer(
             "Tiles3DLayer",
             style=pdk.DeckStyle.DARK,
             elevation_decoder={"rScaler": 100, "isReversed": True},
         )
 
-        # Capa de clusters (puntos)
+        # Capa de puntos (clusters)
         clusters_layer = pdk.Layer(
             "ScatterplotLayer",
             data=gdf,
-            get_position=["Longitud", "Latitud"],  # ¡CORREGIDO!
-            get_color=[f"colores[{row['Cluster']}]" for row in gdf.to_dict('records')],  # Asignar colores basados en el cluster
+            get_position=["Longitud", "Latitud"],
+            get_color=[f"colores[{row['Cluster']}]" for row in gdf.to_dict('records')], 
             get_radius=500,
             pickable=True,
             auto_highlight=True,
         )
 
-        # Configuración de la vista inicial
+        # Vista inicial 
         view_state = pdk.ViewState(
             latitude=gdf.geometry.centroid.y.mean(),
             longitude=gdf.geometry.centroid.x.mean(),
@@ -153,7 +149,7 @@ def visualizacion():
             pitch=45,
         )
 
-        # Crear el mapa con Pydeck
+        # Mapa con Pydeck
         st.pydeck_chart(
             pdk.Deck(
                 layers=[base_layer, clusters_layer],
@@ -167,15 +163,18 @@ def visualizacion():
             )
         )
     else:
-        st.warning("Entrena un modelo y asegúrate de tener datos geoespaciales válidos.")
+        st.warning("Entrena un modelo y asegúrate de tener datos geoespaciales válidos. Puedes hacerlo en las secciones 'Cargar Datos' y 'Modelado'.")
 
+# --- Lógica principal de la aplicación ---
 
-# Menú principal en la barra lateral
-menu = st.sidebar.selectbox(
-    "Menú Principal", ("Cargar Datos", "Análisis Exploratorio", "Modelado", "Visualización")
+# Menú principal 
+st.sidebar.title("Menú Principal")
+menu = st.sidebar.radio(
+    "", 
+    ("Cargar Datos", "Análisis Exploratorio", "Modelado", "Visualización")
 )
 
-# Ejecutar la función seleccionada en el menú
+# Ejecutar la función según la opción del menú
 if menu == "Cargar Datos":
     cargar_datos()
 elif menu == "Análisis Exploratorio":
