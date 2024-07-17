@@ -31,14 +31,14 @@ def cargar_datos():
                 data = pd.DataFrame(gdf)
             else:
                 data = pd.read_csv(uploaded_file)
-                # Intentar convertir a GeoDataFrame si hay columnas de coordenadas
+                # Intentar convertir a GeoDataFrame (¡CORREGIDO!)
                 try:
                     gdf = gpd.GeoDataFrame(
-                        data, geometry=gpd.points_from_xy(data.Longitude, data.Latitude)
+                        data, geometry=gpd.points_from_xy(data['Longitud'], data['Latitud'])
                     )
                 except:
                     st.warning(
-                        "No se encontraron columnas de coordenadas. Asegúrate de que tu archivo CSV tenga columnas nombradas como 'Longitude' y 'Latitude' si deseas visualizar los datos en un mapa."
+                        "No se encontraron columnas de coordenadas. Asegúrate de que tu archivo CSV tenga columnas nombradas como 'Longitud' y 'Latitud' si deseas visualizar los datos en un mapa."
                     )
             st.success("Datos cargados con éxito!")
             st.dataframe(data.head())
@@ -138,7 +138,7 @@ def visualizacion():
         clusters_layer = pdk.Layer(
             "ScatterplotLayer",
             data=gdf,
-            get_position=["Longitud", "Latitud"],
+            get_position=["Longitud", "Latitud"],  # ¡CORREGIDO!
             get_color=[f"colores[{row['Cluster']}]" for row in gdf.to_dict('records')],  # Asignar colores basados en el cluster
             get_radius=500,
             pickable=True,
