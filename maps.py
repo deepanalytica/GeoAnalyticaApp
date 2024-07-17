@@ -138,7 +138,7 @@ def visualizacion():
         clusters_layer = pdk.Layer(
             "ScatterplotLayer",
             data=gdf,
-            get_position=["Longitude", "Latitude"],
+            get_position=["Longitud", "Latitud"],
             get_color=[f"colores[{row['Cluster']}]" for row in gdf.to_dict('records')],  # Asignar colores basados en el cluster
             get_radius=500,
             pickable=True,
@@ -159,8 +159,8 @@ def visualizacion():
                 layers=[base_layer, clusters_layer],
                 initial_view_state=view_state,
                 tooltip={
-                    "html": "<b>Latitud:</b> {Latitude}<br/>"
-                            "<b>Longitud:</b> {Longitude}<br/>"
+                    "html": "<b>Latitud:</b> {Latitud}<br/>"
+                            "<b>Longitud:</b> {Longitud}<br/>"
                             "<b>Cluster:</b> {Cluster}",
                     "style": {"backgroundColor": "steelblue", "color": "white"}
                 }
