@@ -16,38 +16,31 @@ modelo = None
 
 # --- Funciones del menú ---
 
-@st.cache_data
-def cargar_datos():
-    """Carga datos desde un archivo y los guarda en caché."""
-    global data, gdf
-    st.header("Cargar Datos")
-    uploaded_file = st.file_uploader(
-        "Arrastra o selecciona tu archivo (CSV, GeoJSON, Shapefile)",
-        type=["csv", "geojson", "shp"],
-    )
-    if uploaded_file:
-        try:
-            if uploaded_file.name.endswith((".geojson", ".shp")):
-                gdf = gpd.read_file(uploaded_file)
-                data = pd.DataFrame(gdf)
-            else:
-                data = pd.read_csv(uploaded_file)
-                try:
-                    gdf = gpd.GeoDataFrame(
-                        data, geometry=gpd.points_from_xy(data['Longitud'], data['Latitud'])
-                    )
-                except:
-                    st.warning(
-                        "No se encontraron columnas de coordenadas válidas. "
-                        "Asegúrate de que tu archivo CSV tenga columnas nombradas como 'Longitud' y 'Latitud' "
-                        "si deseas visualizar los datos en un mapa."
-                    )
-            st.success("Datos cargados con éxito!")
-            st.write(data.head())
-            return data, gdf
-        except Exception as e:
-            st.error(f"Error al cargar: {e}. Revisa el formato del archivo.")
-    return None, None
+@st.cache_data 
+def procesar_datos(uploaded_file):
+    """Procesa el archivo cargado y retorna los DataFrames."""
+    try:
+        if uploaded_file.name.endswith((".geojson", ".shp")):
+            gdf = gpd.read_file(uploaded_file)
+            data = pd.DataFrame(gdf)
+        else:
+            data = pd.read_csv(uploaded_file)
+            try:
+                gdf = gpd.GeoDataFrame(
+                    data, geometry=gpd.points_from_xy(data['Longitud'], data['Latitud'])
+                )
+            except:
+                st.warning(
+                    "No se encontraron columnas de coordenadas válidas. "
+                    "Asegúrate de que tu archivo CSV tenga columnas nombradas como 'Longitud' y 'Latitud' "
+                    "si deseas visualizar los datos en un mapa."
+                )
+        st.success("Datos cargados con éxito!")
+        st.write(data.head())
+        return data, gdf
+    except Exception as e:
+        st.error(f"Error al cargar: {e}. Revisa el formato del archivo.")
+        return None, None
 
 def analisis_exploratorio():
     """Muestra estadísticas descriptivas e histogramas."""
@@ -166,9 +159,17 @@ def visualizacion():
 st.sidebar.title("Menú Principal")
 menu = st.sidebar.radio("", ("Cargar Datos", "Análisis Exploratorio", "Modelado", "Visualización"))
 
-if menu == "Cargar Datos":
-    data, gdf = cargar_datos()
-elif menu == "Análisis Exploratorio":
+# --- Cargar datos (fuera de la caché) ---
+st.header("Cargar Datos") 
+uploaded_file = st.file_uploader(
+    "Arrastra o selecciona tu archivo (CSV, GeoJSON, Shapefile)",
+    type=["csv", "geojson", "shp"],
+)
+
+if uploaded_file:
+    data, gdf = procesar_datos(uploaded_file) 
+
+if menu == "Análisis Exploratorio":
     analisis_exploratorio()
 elif menu == "Modelado":
     modelado()
