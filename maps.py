@@ -16,8 +16,9 @@ modelo = None
 
 # --- Funciones para cada sección del menú ---
 
+@st.cache_data  
 def cargar_datos():
-    """Permite al usuario cargar datos desde un archivo CSV, GeoJSON o Shapefile."""
+    """Permite al usuario cargar datos y los guarda en caché."""
     global data, gdf
     st.header("Cargar Datos")
     uploaded_file = st.file_uploader(
@@ -41,9 +42,11 @@ def cargar_datos():
                         "No se encontraron columnas de coordenadas válidas. Asegúrate de que tu archivo CSV tenga columnas nombradas como 'Longitud' y 'Latitud' si deseas visualizar los datos en un mapa."
                     )
             st.success("Datos cargados con éxito!")
-            st.write(data.head()) # Mostrar solo una vista previa
+            st.write(data.head()) 
+            return data, gdf 
         except Exception as e:
             st.error(f"Error al cargar: {e}")
+    return None, None 
 
 def analisis_exploratorio():
     """Muestra estadísticas descriptivas e histogramas."""
@@ -86,7 +89,6 @@ def modelado():
                 st.subheader("Configuración del Modelo")
                 n_clusters = st.slider("Número de Clusters", 2, 10, 3)
                 
-                # Puedes agregar más algoritmos aquí si lo deseas
                 algoritmo = st.selectbox("Algoritmo de Clustering", ["KMeans"])  
                 
                 if algoritmo == "KMeans":
@@ -116,21 +118,19 @@ def visualizacion():
     st.header("Visualización de Resultados")
     if gdf is not None and 'Cluster' in gdf.columns:
         st.subheader("Mapa de Clusters")
-        # Paleta de colores 
+        
         colores = [
             [255, 0, 0], [0, 255, 0], [0, 0, 255], 
             [255, 255, 0], [0, 255, 255], [255, 0, 255],
             [128, 0, 0], [0, 128, 0], [0, 0, 128] 
         ]
 
-        # Capa base del mapa
         base_layer = pdk.Layer(
             "Tiles3DLayer",
             style=pdk.DeckStyle.DARK,
             elevation_decoder={"rScaler": 100, "isReversed": True},
         )
 
-        # Capa de puntos (clusters)
         clusters_layer = pdk.Layer(
             "ScatterplotLayer",
             data=gdf,
@@ -141,7 +141,6 @@ def visualizacion():
             auto_highlight=True,
         )
 
-        # Vista inicial 
         view_state = pdk.ViewState(
             latitude=gdf.geometry.centroid.y.mean(),
             longitude=gdf.geometry.centroid.x.mean(),
@@ -149,7 +148,6 @@ def visualizacion():
             pitch=45,
         )
 
-        # Mapa con Pydeck
         st.pydeck_chart(
             pdk.Deck(
                 layers=[base_layer, clusters_layer],
@@ -167,16 +165,14 @@ def visualizacion():
 
 # --- Lógica principal de la aplicación ---
 
-# Menú principal 
 st.sidebar.title("Menú Principal")
 menu = st.sidebar.radio(
     "", 
     ("Cargar Datos", "Análisis Exploratorio", "Modelado", "Visualización")
 )
 
-# Ejecutar la función según la opción del menú
 if menu == "Cargar Datos":
-    cargar_datos()
+    data, gdf = cargar_datos() 
 elif menu == "Análisis Exploratorio":
     analisis_exploratorio()
 elif menu == "Modelado":
