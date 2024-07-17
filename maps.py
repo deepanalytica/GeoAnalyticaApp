@@ -6,19 +6,19 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import pydeck as pdk
 
-st.set_page_config(layout="wide", page_title="GeoMiner - Mapa de Prospectividad")
+st.set_page_config(layout="wide", page_title="GeoMiner")
 st.title("GeoMiner: Exploración y Planificación Minera")
 
-# Datos globales (inicialmente vacíos)
+# Datos globales
 data = None
 gdf = None
 modelo = None
 
-# --- Funciones para cada sección del menú ---
+# --- Funciones del menú ---
 
-@st.cache_data  
+@st.cache_data
 def cargar_datos():
-    """Permite al usuario cargar datos y los guarda en caché."""
+    """Carga datos desde un archivo y los guarda en caché."""
     global data, gdf
     st.header("Cargar Datos")
     uploaded_file = st.file_uploader(
@@ -32,21 +32,22 @@ def cargar_datos():
                 data = pd.DataFrame(gdf)
             else:
                 data = pd.read_csv(uploaded_file)
-                # Intentar convertir a GeoDataFrame 
                 try:
                     gdf = gpd.GeoDataFrame(
                         data, geometry=gpd.points_from_xy(data['Longitud'], data['Latitud'])
                     )
                 except:
                     st.warning(
-                        "No se encontraron columnas de coordenadas válidas. Asegúrate de que tu archivo CSV tenga columnas nombradas como 'Longitud' y 'Latitud' si deseas visualizar los datos en un mapa."
+                        "No se encontraron columnas de coordenadas válidas. "
+                        "Asegúrate de que tu archivo CSV tenga columnas nombradas como 'Longitud' y 'Latitud' "
+                        "si deseas visualizar los datos en un mapa."
                     )
             st.success("Datos cargados con éxito!")
-            st.write(data.head()) 
-            return data, gdf 
+            st.write(data.head())
+            return data, gdf
         except Exception as e:
-            st.error(f"Error al cargar: {e}")
-    return None, None 
+            st.error(f"Error al cargar: {e}. Revisa el formato del archivo.")
+    return None, None
 
 def analisis_exploratorio():
     """Muestra estadísticas descriptivas e histogramas."""
@@ -76,53 +77,47 @@ def modelado():
                 "Elige las variables para el clustering", columnas_numericas
             )
             if columnas_seleccionadas:
-                # Preprocesamiento
                 st.subheader("Preprocesamiento")
                 escalar = st.checkbox("Estandarizar datos (recomendado)")
                 if escalar:
                     scaler = StandardScaler()
-                    data_procesada = scaler.fit_transform( data[columnas_seleccionadas])
+                    data_procesada = scaler.fit_transform(data[columnas_seleccionadas])
                 else:
                     data_procesada = data[columnas_seleccionadas]
 
-                # Algoritmo de Clustering
                 st.subheader("Configuración del Modelo")
                 n_clusters = st.slider("Número de Clusters", 2, 10, 3)
-                
-                algoritmo = st.selectbox("Algoritmo de Clustering", ["KMeans"])  
-                
+                algoritmo = st.selectbox("Algoritmo de Clustering", ["KMeans"])
+
                 if algoritmo == "KMeans":
                     modelo = KMeans(n_clusters=n_clusters, random_state=42)
                     modelo.fit(data_procesada)
 
-                # Evaluación
                 st.subheader("Evaluación del Modelo")
                 labels = modelo.labels_
                 silhouette_avg = silhouette_score(data_procesada, labels)
                 st.write(f"Puntuación de Silueta: {silhouette_avg:.2f}")
 
-                # Asignar clusters al DataFrame original
                 data['Cluster'] = modelo.labels_
-
                 st.success("Modelo entrenado y clusters asignados!")
             else:
                 st.warning("Selecciona al menos una variable para el clustering.")
         else:
-            st.warning("No hay columnas numéricas en el conjunto de datos.")
+            st.warning("El conjunto de datos no contiene columnas numéricas para el clustering.")
     else:
         st.warning("Carga los datos primero en la sección 'Cargar Datos'.")
 
 def visualizacion():
-    """Muestra un mapa interactivo con los resultados."""
+    """Visualiza los resultados del clustering en un mapa."""
     global gdf, modelo
     st.header("Visualización de Resultados")
     if gdf is not None and 'Cluster' in gdf.columns:
         st.subheader("Mapa de Clusters")
-        
+
         colores = [
-            [255, 0, 0], [0, 255, 0], [0, 0, 255], 
+            [255, 0, 0], [0, 255, 0], [0, 0, 255],
             [255, 255, 0], [0, 255, 255], [255, 0, 255],
-            [128, 0, 0], [0, 128, 0], [0, 0, 128] 
+            [128, 0, 0], [0, 128, 0], [0, 0, 128]
         ]
 
         base_layer = pdk.Layer(
@@ -135,7 +130,7 @@ def visualizacion():
             "ScatterplotLayer",
             data=gdf,
             get_position=["Longitud", "Latitud"],
-            get_color=[f"colores[{row['Cluster']}]" for row in gdf.to_dict('records')], 
+            get_color=[colores[row['Cluster']] for row in gdf.to_dict('records')],
             get_radius=500,
             pickable=True,
             auto_highlight=True,
@@ -161,18 +156,18 @@ def visualizacion():
             )
         )
     else:
-        st.warning("Entrena un modelo y asegúrate de tener datos geoespaciales válidos. Puedes hacerlo en las secciones 'Cargar Datos' y 'Modelado'.")
+        st.warning(
+            "Entrena un modelo y asegúrate de tener datos geoespaciales válidos. "
+            "Puedes hacerlo en las secciones 'Cargar Datos' y 'Modelado'."
+        )
 
-# --- Lógica principal de la aplicación ---
+# --- Lógica principal ---
 
 st.sidebar.title("Menú Principal")
-menu = st.sidebar.radio(
-    "", 
-    ("Cargar Datos", "Análisis Exploratorio", "Modelado", "Visualización")
-)
+menu = st.sidebar.radio("", ("Cargar Datos", "Análisis Exploratorio", "Modelado", "Visualización"))
 
 if menu == "Cargar Datos":
-    data, gdf = cargar_datos() 
+    data, gdf = cargar_datos()
 elif menu == "Análisis Exploratorio":
     analisis_exploratorio()
 elif menu == "Modelado":
